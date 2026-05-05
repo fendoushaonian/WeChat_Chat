@@ -1,0 +1,21 @@
+node_modules
+dist
+release
+.DS_Store
+*.log
+.env
+.env.local
+.env.*.local
+.vscode
+
+# 敏感: 含 SSH 密码、plink/pscp 二进制、部署脚本
+.deploy_tools/
+
+# 服务器上传的用户图片(不该进 repo)
+server/data/
+server/node_modules/
+server/.env
+
+# 测试脚本临时文件
+scripts/test-*.js
+.idea

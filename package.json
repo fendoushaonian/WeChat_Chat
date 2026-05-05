@@ -1,0 +1,104 @@
+{
+  "name": "moments-writer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "朋友圈文案生成助手 - 多平台 AI（智谱/百度/DeepSeek/Kimi/SiliconFlow）",
+  "author": "Moments Writer",
+  "main": "electron/main.js",
+  "scripts": {
+    "icons": "node scripts/gen-icons.js",
+    "dev": "concurrently -k \"npm:dev:vite\" \"npm:dev:electron\"",
+    "dev:vite": "vite",
+    "dev:admin": "cross-env VITE_BUILD_FLAVOR=admin vite",
+    "dev:electron": "wait-on tcp:5173 && cross-env NODE_ENV=development electron .",
+    "build": "vite build",
+    "build:agent": "cross-env VITE_BUILD_FLAVOR=agent vite build",
+    "build:admin": "cross-env VITE_BUILD_FLAVOR=admin vite build",
+    "preview": "vite preview",
+    "dist": "npm run build:agent && electron-builder",
+    "dist:agent": "npm run build:agent && cross-env BUILD_FLAVOR=agent electron-builder --win",
+    "dist:agent:mac": "npm run build:agent && cross-env BUILD_FLAVOR=agent electron-builder --mac",
+    "dist:admin": "npm run build:admin && cross-env BUILD_FLAVOR=admin electron-builder --win",
+    "dist:admin:mac": "npm run build:admin && cross-env BUILD_FLAVOR=admin electron-builder --mac",
+    "dist:win": "npm run build:agent && electron-builder --win",
+    "dist:mac": "npm run build:agent && electron-builder --mac",
+    "dist:all": "npm run build:agent && electron-builder -mw"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "zustand": "^4.5.2"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.56",
+    "@types/react-dom": "^18.2.19",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.17",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^29.1.0",
+    "electron-builder": "^24.13.3",
+    "png-to-ico": "^3.0.1",
+    "postcss": "^8.4.35",
+    "sharp": "^0.34.5",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.3.3",
+    "vite": "^5.1.4",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.momentswriter.app",
+    "productName": "朋友圈文案助手",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "build/icon.ico",
+      "build/icon.png",
+      "build/icon-256.png",
+      "build/icon-64.png",
+      "package.json"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-${version}-Setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "朋友圈文案助手",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
+    },
+    "mac": {
+      "icon": "build/icon.png",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.productivity",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "dmg": {
+      "title": "朋友圈文案助手"
+    }
+  }
+}

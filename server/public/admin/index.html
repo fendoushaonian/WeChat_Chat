@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>朋友圈文案助手 · 商品管理后台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+    .hidden-impl { display: none !important; }
+    .toast { transition: opacity .2s, transform .2s; }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800">
+
+<!-- 顶栏 -->
+<header id="topbar" class="hidden-impl bg-white border-b border-slate-200 sticky top-0 z-30">
+  <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between gap-6">
+    <div class="flex items-center gap-2 shrink-0">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-400 to-violet-500 flex items-center justify-center text-white font-bold">M</div>
+      <div class="font-semibold tracking-tight">朋友圈文案助手 · 后台</div>
+    </div>
+    <nav class="flex items-center gap-1 flex-1">
+      <button data-tab="products" onclick="switchTab('products')" class="tab-btn h-9 px-4 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100">📦 商品管理</button>
+      <button data-tab="agents" onclick="switchTab('agents')" class="tab-btn h-9 px-4 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100">🔑 代理管理</button>
+    </nav>
+    <div class="flex items-center gap-3 text-sm shrink-0">
+      <span class="text-slate-500">登录为 <span id="who" class="font-medium text-slate-700"></span></span>
+      <button onclick="changePassword()" class="text-slate-500 hover:text-slate-800">修改密码</button>
+      <button onclick="logout()" class="text-rose-600 hover:text-rose-700 font-medium">退出</button>
+    </div>
+  </div>
+</header>
+
+<style>
+  .tab-btn.active { background: #ede9fe; color: #6d28d9; }
+</style>
+
+<!-- 登录 -->
+<div id="login" class="min-h-screen flex items-center justify-center px-4">
+  <div class="w-full max-w-sm bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+    <div class="flex items-center gap-2 mb-6">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-400 to-violet-500 flex items-center justify-center text-white font-bold text-lg">M</div>
+      <div>
+        <div class="font-semibold tracking-tight">商品管理后台</div>
+        <div class="text-xs text-slate-500">朋友圈文案助手</div>
+      </div>
+    </div>
+    <form id="loginForm" class="space-y-3">
+      <div>
+        <label class="text-xs text-slate-500 mb-1 block">账号</label>
+        <input id="loginUser" type="text" autocomplete="username" required
+          class="w-full px-3 h-10 border border-slate-300 rounded-lg outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200">
+      </div>
+      <div>
+        <label class="text-xs text-slate-500 mb-1 block">密码</label>
+        <input id="loginPwd" type="password" autocomplete="current-password" required
+          class="w-full px-3 h-10 border border-slate-300 rounded-lg outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200">
+      </div>
+      <div id="loginErr" class="text-xs text-rose-600 hidden-impl"></div>
+      <button type="submit" id="loginBtn"
+        class="w-full h-10 rounded-lg bg-violet-600 text-white font-medium hover:bg-violet-700 active:bg-violet-800 transition disabled:opacity-50">
+        登录
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- 主内容 - 商品管理 -->
+<main id="app-products" class="hidden-impl max-w-6xl mx-auto px-6 py-8">
+
+  <div class="flex items-end justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-semibold tracking-tight">商品列表</h1>
+      <p class="text-sm text-slate-500 mt-1">代理客户端启动时会从这里同步商品。新增/修改后所有代理下次开软件即可看到。</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="loadProducts()" class="h-9 px-3 rounded-lg border border-slate-300 hover:bg-slate-100 text-sm">
+        🔄 刷新
+      </button>
+      <button onclick="openForm()" class="h-9 px-4 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700">
+        + 新增商品
+      </button>
+    </div>
+  </div>
+
+  <div id="empty" class="hidden-impl bg-white border border-dashed border-slate-300 rounded-2xl p-12 text-center">
+    <div class="text-4xl mb-2">📦</div>
+    <div class="text-slate-700 font-medium">还没有商品</div>
+    <div class="text-sm text-slate-500 mt-1">点击右上角"新增商品"添加第一个</div>
+  </div>
+
+  <div id="list" class="space-y-3"></div>
+</main>
+
+<!-- 主内容 - 代理管理 -->
+<main id="app-agents" class="hidden-impl max-w-6xl mx-auto px-6 py-8">
+
+  <div class="flex items-end justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-semibold tracking-tight">代理激活码</h1>
+      <p class="text-sm text-slate-500 mt-1">每个代理一个激活码。代理首次打开客户端时输入激活码即可使用。停用后该代理客户端立刻无法拉取商品。</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="loadAgents()" class="h-9 px-3 rounded-lg border border-slate-300 hover:bg-slate-100 text-sm">🔄 刷新</button>
+      <button onclick="openAgentForm()" class="h-9 px-4 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700">+ 生成激活码</button>
+    </div>
+  </div>
+
+  <div id="agentEmpty" class="hidden-impl bg-white border border-dashed border-slate-300 rounded-2xl p-12 text-center">
+    <div class="text-4xl mb-2">🔑</div>
+    <div class="text-slate-700 font-medium">还没有激活码</div>
+    <div class="text-sm text-slate-500 mt-1">点击右上角"生成激活码"创建第一批</div>
+  </div>
+
+  <!-- 统计概览 -->
+  <div id="agentStats" class="grid grid-cols-3 gap-3 mb-4 hidden-impl">
+    <div class="bg-white rounded-xl border border-slate-200 p-4">
+      <div class="text-xs text-slate-500">总激活码</div>
+      <div class="text-2xl font-semibold mt-1" id="statTotal">0</div>
+    </div>
+    <div class="bg-white rounded-xl border border-slate-200 p-4">
+      <div class="text-xs text-slate-500">已激活</div>
+      <div class="text-2xl font-semibold mt-1 text-emerald-600" id="statActive">0</div>
+    </div>
+    <div class="bg-white rounded-xl border border-slate-200 p-4">
+      <div class="text-xs text-slate-500">已停用</div>
+      <div class="text-2xl font-semibold mt-1 text-rose-600" id="statDisabled">0</div>
+    </div>
+  </div>
+
+  <div id="agentList" class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
+        <tr>
+          <th class="text-left px-4 py-3">激活码</th>
+          <th class="text-left px-4 py-3">备注</th>
+          <th class="text-left px-4 py-3">状态</th>
+          <th class="text-left px-4 py-3">最后活跃</th>
+          <th class="text-left px-4 py-3">使用次数</th>
+          <th class="text-right px-4 py-3 pr-6">操作</th>
+        </tr>
+      </thead>
+      <tbody id="agentTbody" class="divide-y divide-slate-100"></tbody>
+    </table>
+  </div>
+</main>
+
+<!-- 生成激活码弹窗 -->
+<div id="agentModal" class="hidden-impl fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+      <div class="font-semibold text-lg" id="agentModalTitle">生成激活码</div>
+      <button onclick="closeAgentForm()" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-500">✕</button>
+    </div>
+    <div class="px-6 py-5 space-y-4">
+      <!-- 创建表单 -->
+      <div id="agentCreateView" class="space-y-3">
+        <div>
+          <label class="text-sm font-medium block mb-1">数量</label>
+          <div class="flex items-center gap-2">
+            <input id="ag_count" type="number" min="1" max="50" value="1" class="w-24 px-3 h-10 border border-slate-300 rounded-lg outline-none focus:border-violet-500">
+            <span class="text-xs text-slate-500">一次最多生成 50 个</span>
+          </div>
+        </div>
+        <div>
+          <label class="text-sm font-medium block mb-1">备注（可选）</label>
+          <input id="ag_label" type="text" placeholder="例如：张三 · 微商团队 A" class="w-full px-3 h-10 border border-slate-300 rounded-lg outline-none focus:border-violet-500">
+          <div class="text-xs text-slate-500 mt-1">所有这次生成的码都会带上这个备注，方便后续识别</div>
+        </div>
+      </div>
+      <!-- 生成结果 -->
+      <div id="agentResultView" class="hidden-impl space-y-3">
+        <div class="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+          ✅ 已生成 <span id="ag_resultCount">0</span> 个激活码，请保管好后发给代理：
+        </div>
+        <div id="ag_resultList" class="bg-slate-50 border border-slate-200 rounded-lg p-3 max-h-60 overflow-y-auto font-mono text-sm space-y-1"></div>
+        <button onclick="copyAllCodes()" class="w-full h-9 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm">📋 复制全部激活码</button>
+      </div>
+    </div>
+    <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-200">
+      <button onclick="closeAgentForm()" id="ag_cancelBtn" class="h-9 px-4 rounded-lg text-slate-600 hover:bg-slate-100 text-sm">取消</button>
+      <button onclick="generateAgents()" id="ag_genBtn" class="h-9 px-5 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700">生成</button>
+    </div>
+  </div>
+</div>
+
+<!-- 商品编辑弹窗 -->
+<div id="modal" class="hidden-impl fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+      <div>
+        <div class="font-semibold text-lg" id="modalTitle">新增商品</div>
+        <div class="text-xs text-slate-500" id="modalSub"></div>
+      </div>
+      <button onclick="closeForm()" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-500">✕</button>
+    </div>
+    <div class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+
+      <Field label="商品名称" required>
+        <input id="f_name" class="m-input" placeholder="例如：山茶菁华婴童呵护膏">
+      </Field>
+
+      <Field label="一句话卖点" hint="一句话产品定位">
+        <input id="f_tagline" class="m-input" placeholder="例如：天然山茶油提取，宝宝夏日外出常备">
+      </Field>
+
+      <Field label="核心卖点" required hint="每行一条，建议 3-5 条">
+        <textarea id="f_sellingPoints" rows="4" class="m-input"
+          placeholder="例如：&#10;天然山茶油萃取，温和不刺激&#10;蚊虫叮咬后舒缓，不黏腻&#10;全家可用，婴童孕妇友好"></textarea>
+      </Field>
+
+      <Field label="商品详细介绍" hint="可选 · 写产品故事 / 成分 / 适用人群 / 使用方法">
+        <textarea id="f_description" rows="5" class="m-input"
+          placeholder="（可选）一段长文本描述，AI 会基于这段创作"></textarea>
+      </Field>
+
+      <div class="grid grid-cols-2 gap-3">
+        <Field label="价格展示" hint="仅展示用">
+          <input id="f_priceText" class="m-input" placeholder="¥89">
+        </Field>
+        <Field label="排序权重" hint="数字越小越靠前">
+          <input id="f_sortOrder" type="number" class="m-input" placeholder="0" value="0">
+        </Field>
+      </div>
+
+      <Field label="商品封面图" hint="点击下方上传或粘贴图片 URL，最大 5MB">
+        <div class="flex items-start gap-3">
+          <div id="f_preview" class="w-24 h-24 rounded-xl border border-slate-300 bg-slate-50 flex items-center justify-center text-slate-400 text-xs overflow-hidden bg-cover bg-center">
+            暂无图片
+          </div>
+          <div class="flex-1 space-y-2">
+            <div class="flex flex-wrap gap-2">
+              <button type="button" onclick="document.getElementById('f_file').click()" class="h-8 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm">📤 上传图片</button>
+              <button type="button" onclick="toggleUrlMode()" id="urlBtn" class="h-8 px-3 rounded-lg text-sm text-slate-600 hover:bg-slate-100">🔗 粘贴 URL</button>
+              <button type="button" onclick="clearCover()" id="clrBtn" class="hidden-impl h-8 px-3 rounded-lg text-sm text-rose-600 hover:bg-rose-50">🗑 清除</button>
+            </div>
+            <input id="f_coverUrl" type="text" class="m-input hidden-impl" placeholder="https://...">
+            <div id="f_uploadHint" class="text-xs text-slate-500"></div>
+          </div>
+        </div>
+        <input id="f_file" type="file" accept="image/*" class="hidden-impl" onchange="onFileChange(event)">
+      </Field>
+
+      <Field label="推荐场景" hint="代理选完商品后会自动推荐这些场景">
+        <div id="f_scenes" class="flex flex-wrap gap-1.5"></div>
+      </Field>
+
+      <Field label="AI 写作提示词（高级）" hint="可选 · 专属本商品的额外规则，最高优先级">
+        <textarea id="f_extraRules" rows="3" class="m-input"
+          placeholder="（可选）例如：&#10;- 必须提到&quot;限时活动&quot;&#10;- 不出现医疗词&#10;- 用妈妈口吻"></textarea>
+      </Field>
+
+      <label class="flex items-center gap-2 text-sm text-slate-600">
+        <input id="f_active" type="checkbox" checked class="w-4 h-4">
+        启用 (取消勾选则隐藏, 代理客户端不会拉到此商品)
+      </label>
+
+      <div id="formErr" class="text-sm text-rose-600 hidden-impl"></div>
+    </div>
+    <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-200">
+      <button onclick="closeForm()" class="h-9 px-4 rounded-lg text-slate-600 hover:bg-slate-100 text-sm">取消</button>
+      <button id="saveBtn" onclick="saveProduct()" class="h-9 px-5 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 disabled:opacity-50">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg bg-slate-900 text-white text-sm opacity-0 pointer-events-none"></div>
+
+<!-- 简易自定义元素以便统一渲染表单字段 -->
+<script>
+  customElements.define('field-cmp', class extends HTMLElement {
+    connectedCallback() {
+      const label = this.getAttribute('label')
+      const hint = this.getAttribute('hint')
+      const required = this.hasAttribute('required')
+      const inner = this.innerHTML
+      this.innerHTML = `
+        <div>
+          <div class="flex items-baseline gap-2 mb-1">
+            <span class="text-sm font-medium text-slate-700">${label}${required ? '<span class="text-rose-500 ml-0.5">*</span>' : ''}</span>
+            ${hint ? `<span class="text-xs text-slate-500">${hint}</span>` : ''}
+          </div>
+          ${inner}
+        </div>`
+    }
+  })
+</script>
+
+<script>
+  // 把 <Field> 标签替换成 <field-cmp> (兼容大小写)
+  document.querySelectorAll('Field').forEach((el) => {
+    const f = document.createElement('field-cmp')
+    for (const a of el.attributes) f.setAttribute(a.name, a.value)
+    f.innerHTML = el.innerHTML
+    el.replaceWith(f)
+  })
+</script>
+
+<style>
+  .m-input { width: 100%; padding: 0 12px; height: 40px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; font-size: 14px; transition: border-color .15s, box-shadow .15s; background: white; }
+  textarea.m-input { padding: 10px 12px; height: auto; resize: vertical; line-height: 1.5; font-family: inherit; }
+  .m-input:focus { border-color: #8b5cf6; box-shadow: 0 0 0 3px rgba(139,92,246,.15); }
+  .chip { display: inline-flex; align-items: center; gap: 4px; padding: 0 12px; height: 30px; border: 1px solid #cbd5e1; border-radius: 999px; font-size: 13px; cursor: pointer; user-select: none; transition: all .12s; background: white; }
+  .chip:hover { background: #f1f5f9; }
+  .chip.on { background: #ede9fe; border-color: #8b5cf6; color: #6d28d9; font-weight: 500; }
+  .row-card { display: flex; gap: 16px; padding: 14px; background: white; border: 1px solid #e2e8f0; border-radius: 14px; transition: box-shadow .15s; }
+  .row-card:hover { box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 14px -2px rgba(0,0,0,.08); }
+</style>
+
+<script>
+  // ========================================
+  // 全局状态 + API 封装
+  // ========================================
+  const API = '/api'
+  let token = localStorage.getItem('mw_admin_token') || ''
+  let me = ''
+  // 与客户端的场景列表保持一致
+  const ALL_SCENES = ['夏夜户外','公园遛娃','露营野餐','旅行出差','洗澡睡前','草地野餐','钓鱼徒步','阳台花园','遛狗散步','全家出游','日常通勤','婴童护理']
+
+  async function api(path, options = {}) {
+    const opts = { method: 'GET', headers: {}, ...options }
+    if (opts.body && typeof opts.body !== 'string' && !(opts.body instanceof FormData)) {
+      opts.headers['Content-Type'] = 'application/json'
+      opts.body = JSON.stringify(opts.body)
+    }
+    if (token) opts.headers['Authorization'] = 'Bearer ' + token
+    const res = await fetch(API + path, opts)
+    let data = null
+    try { data = await res.json() } catch {}
+    if (!res.ok) {
+      if (res.status === 401) {
+        logout()
+      }
+      throw new Error((data && data.error) || `HTTP ${res.status}`)
+    }
+    return data
+  }
+
+  function show(id) { document.getElementById(id)?.classList.remove('hidden-impl') }
+  function hide(id) { document.getElementById(id)?.classList.add('hidden-impl') }
+  function toast(msg, isErr = false) {
+    const el = document.getElementById('toast')
+    el.textContent = msg
+    el.style.background = isErr ? '#dc2626' : '#0f172a'
+    el.style.opacity = '1'
+    el.style.transform = 'translate(-50%, 0)'
+    clearTimeout(toast._t)
+    toast._t = setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translate(-50%, 8px)' }, 2200)
+  }
+
+  // ========================================
+  // 登录 / 登出
+  // ========================================
+  document.getElementById('loginForm').onsubmit = async (e) => {
+    e.preventDefault()
+    const u = document.getElementById('loginUser').value.trim()
+    const p = document.getElementById('loginPwd').value
+    const errEl = document.getElementById('loginErr')
+    const btn = document.getElementById('loginBtn')
+    errEl.classList.add('hidden-impl')
+    btn.disabled = true
+    btn.textContent = '登录中…'
+    try {
+      const r = await api('/auth/login', { method: 'POST', body: { username: u, password: p } })
+      token = r.token
+      me = r.username
+      localStorage.setItem('mw_admin_token', token)
+      enterApp()
+    } catch (e) {
+      errEl.textContent = e.message
+      errEl.classList.remove('hidden-impl')
+    } finally {
+      btn.disabled = false
+      btn.textContent = '登录'
+    }
+  }
+
+  function logout() {
+    token = ''
+    me = ''
+    localStorage.removeItem('mw_admin_token')
+    hide('topbar'); hide('app'); show('login')
+  }
+
+  async function changePassword() {
+    const oldp = prompt('请输入当前密码:')
+    if (!oldp) return
+    const newp = prompt('请输入新密码 (至少 6 位):')
+    if (!newp) return
+    if (newp.length < 6) return toast('新密码至少 6 位', true)
+    try {
+      await api('/auth/change-password', { method: 'POST', body: { oldPassword: oldp, newPassword: newp } })
+      toast('密码已修改')
+    } catch (e) {
+      toast(e.message, true)
+    }
+  }
+
+  async function tryAutoLogin() {
+    if (!token) return
+    try {
+      const r = await api('/auth/me')
+      me = r.username
+      enterApp()
+    } catch {
+      logout()
+    }
+  }
+
+  function enterApp() {
+    document.getElementById('who').textContent = me
+    hide('login'); show('topbar')
+    // 默认进入商品管理 tab
+    switchTab('products')
+  }
+
+  // ========================================
+  // Tab 切换
+  // ========================================
+  function switchTab(name) {
+    // 更新顶栏 tab 高亮
+    document.querySelectorAll('.tab-btn').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.tab === name)
+    })
+    // 切换主视图
+    if (name === 'products') {
+      show('app-products')
+      hide('app-agents')
+      loadProducts()
+    } else if (name === 'agents') {
+      hide('app-products')
+      show('app-agents')
+      loadAgents()
+    }
+  }
+
+  // ========================================
+  // 商品列表
+  // ========================================
+  let products = []
+
+  async function loadProducts() {
+    try {
+      const r = await api('/products?all=1')
+      products = r.products || []
+      renderList()
+    } catch (e) {
+      toast('加载失败: ' + e.message, true)
+    }
+  }
+
+  function renderList() {
+    const list = document.getElementById('list')
+    if (products.length === 0) {
+      list.innerHTML = ''
+      show('empty')
+      return
+    }
+    hide('empty')
+    list.innerHTML = products.map((p) => {
+      const cover = p.coverUrl
+        ? `<div class="w-14 h-14 rounded-xl bg-cover bg-center shrink-0" style="background-image:url(${escapeAttr(p.coverUrl)})"></div>`
+        : `<div class="w-14 h-14 rounded-xl shrink-0 flex items-center justify-center font-bold text-violet-700"
+            style="background:linear-gradient(135deg,${pickColor(p.id)},${pickColor(p.id, 60)})">
+            ${escapeHtml(p.name.slice(0, 2))}
+          </div>`
+      const tags = (p.sellingPoints || []).slice(0, 3).map((s) => `<span class="px-1.5 py-0.5 bg-slate-100 rounded text-xs text-slate-600">${escapeHtml(s)}</span>`).join('')
+      return `
+        <div class="row-card">
+          ${cover}
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <div class="font-medium truncate">${escapeHtml(p.name)}</div>
+              ${p.builtIn ? `<span class="px-1.5 py-0.5 bg-violet-100 text-violet-700 rounded text-xs">内置</span>` : ''}
+              ${!p.active ? `<span class="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-xs">已停用</span>` : ''}
+              ${p.priceText ? `<span class="text-sm text-slate-500">${escapeHtml(p.priceText)}</span>` : ''}
+            </div>
+            ${p.tagline ? `<div class="text-sm text-slate-500 truncate mt-0.5">${escapeHtml(p.tagline)}</div>` : ''}
+            <div class="flex flex-wrap gap-1 mt-2">${tags}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick='editProduct(${JSON.stringify(p.id)})' class="h-8 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm">编辑</button>
+            <button onclick='deleteProduct(${JSON.stringify(p.id)})' class="h-8 px-3 rounded-lg text-rose-600 hover:bg-rose-50 text-sm">删除</button>
+          </div>
+        </div>`
+    }).join('')
+  }
+
+  function pickColor(seed, shift = 0) {
+    let h = 0
+    for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) & 0xffff
+    return `hsl(${(h + shift) % 360}, 75%, 88%)`
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+  }
+  function escapeAttr(s) { return escapeHtml(s) }
+
+  // ========================================
+  // 表单 (新增 / 编辑)
+  // ========================================
+  let editingId = null
+
+  function openForm() {
+    editingId = null
+    document.getElementById('modalTitle').textContent = '新增商品'
+    document.getElementById('modalSub').textContent = ''
+    fillForm({})
+    show('modal')
+  }
+
+  function editProduct(id) {
+    const p = products.find((x) => x.id === id)
+    if (!p) return
+    editingId = id
+    document.getElementById('modalTitle').textContent = '编辑商品'
+    document.getElementById('modalSub').textContent = p.builtIn ? '内置商品 · 可编辑但不建议删除' : 'ID: ' + id
+    fillForm(p)
+    show('modal')
+  }
+
+  function fillForm(p) {
+    document.getElementById('f_name').value = p.name || ''
+    document.getElementById('f_tagline').value = p.tagline || ''
+    document.getElementById('f_sellingPoints').value = (p.sellingPoints || []).join('\n')
+    document.getElementById('f_description').value = p.description || ''
+    document.getElementById('f_priceText').value = p.priceText || ''
+    document.getElementById('f_sortOrder').value = p.sortOrder ?? 0
+    document.getElementById('f_extraRules').value = p.extraRules || ''
+    document.getElementById('f_coverUrl').value = p.coverUrl || ''
+    document.getElementById('f_active').checked = p.active !== false
+    setCoverPreview(p.coverUrl || '')
+    renderSceneChips(p.scenes || [])
+    document.getElementById('formErr').classList.add('hidden-impl')
+  }
+
+  function renderSceneChips(selected) {
+    const set = new Set(selected)
+    const html = ALL_SCENES.map((s) => `<span class="chip ${set.has(s) ? 'on' : ''}" data-key="${s}" onclick="toggleScene(this)">${set.has(s) ? '✓ ' : ''}${s}</span>`).join('')
+    document.getElementById('f_scenes').innerHTML = html
+  }
+  function toggleScene(el) {
+    el.classList.toggle('on')
+    const k = el.dataset.key
+    const on = el.classList.contains('on')
+    el.textContent = (on ? '✓ ' : '') + k
+  }
+
+  function setCoverPreview(url) {
+    const el = document.getElementById('f_preview')
+    const clr = document.getElementById('clrBtn')
+    if (url) {
+      el.style.backgroundImage = `url(${url})`
+      el.textContent = ''
+      clr.classList.remove('hidden-impl')
+      const hint = url.startsWith('data:') ? '已上传本地图片' : url.startsWith('http') ? '使用远程图片 URL' : '已选图片'
+      document.getElementById('f_uploadHint').textContent = hint
+    } else {
+      el.style.backgroundImage = ''
+      el.textContent = '暂无图片'
+      clr.classList.add('hidden-impl')
+      document.getElementById('f_uploadHint').textContent = ''
+    }
+  }
+  function clearCover() {
+    document.getElementById('f_coverUrl').value = ''
+    setCoverPreview('')
+  }
+  function toggleUrlMode() {
+    const inp = document.getElementById('f_coverUrl')
+    inp.classList.toggle('hidden-impl')
+    document.getElementById('urlBtn').textContent = inp.classList.contains('hidden-impl') ? '🔗 粘贴 URL' : '收起 URL'
+    if (!inp.classList.contains('hidden-impl')) {
+      inp.focus()
+      inp.oninput = () => setCoverPreview(inp.value)
+    }
+  }
+  async function onFileChange(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    document.getElementById('f_uploadHint').textContent = '上传中…'
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const r = await api('/upload', { method: 'POST', body: fd })
+      // 服务器返回相对路径, 前端拼成绝对 URL 存到表单
+      const url = r.absoluteUrl || (location.origin + r.url)
+      document.getElementById('f_coverUrl').value = url
+      setCoverPreview(url)
+      toast('图片上传成功')
+    } catch (e) {
+      toast('上传失败: ' + e.message, true)
+      document.getElementById('f_uploadHint').textContent = ''
+    }
+  }
+
+  function closeForm() { hide('modal') }
+
+  async function saveProduct() {
+    const errEl = document.getElementById('formErr')
+    errEl.classList.add('hidden-impl')
+
+    const sceneEls = document.querySelectorAll('#f_scenes .chip.on')
+    const selectedScenes = Array.from(sceneEls).map((el) => el.dataset.key)
+
+    const data = {
+      name: document.getElementById('f_name').value.trim(),
+      tagline: document.getElementById('f_tagline').value.trim(),
+      sellingPoints: document.getElementById('f_sellingPoints').value.split('\n').map((s) => s.trim()).filter(Boolean),
+      description: document.getElementById('f_description').value.trim(),
+      scenes: selectedScenes,
+      extraRules: document.getElementById('f_extraRules').value.trim(),
+      coverUrl: document.getElementById('f_coverUrl').value.trim(),
+      priceText: document.getElementById('f_priceText').value.trim(),
+      sortOrder: parseInt(document.getElementById('f_sortOrder').value, 10) || 0,
+      active: document.getElementById('f_active').checked,
+    }
+
+    if (!data.name) {
+      errEl.textContent = '商品名称不能为空'
+      errEl.classList.remove('hidden-impl')
+      return
+    }
+    if (data.sellingPoints.length === 0) {
+      errEl.textContent = '至少填写一条核心卖点'
+      errEl.classList.remove('hidden-impl')
+      return
+    }
+
+    const btn = document.getElementById('saveBtn')
+    btn.disabled = true
+    btn.textContent = '保存中…'
+    try {
+      if (editingId) {
+        await api('/products/' + encodeURIComponent(editingId), { method: 'PUT', body: data })
+        toast('已更新')
+      } else {
+        await api('/products', { method: 'POST', body: data })
+        toast('已新增')
+      }
+      closeForm()
+      loadProducts()
+    } catch (e) {
+      errEl.textContent = e.message
+      errEl.classList.remove('hidden-impl')
+    } finally {
+      btn.disabled = false
+      btn.textContent = '保存'
+    }
+  }
+
+  async function deleteProduct(id) {
+    const p = products.find((x) => x.id === id)
+    if (!p) return
+    if (!confirm(`确定删除商品「${p.name}」？此操作不可撤销。`)) return
+    try {
+      await api('/products/' + encodeURIComponent(id), { method: 'DELETE' })
+      toast('已删除')
+      loadProducts()
+    } catch (e) {
+      toast('删除失败: ' + e.message, true)
+    }
+  }
+
+  // ========================================
+  // 代理激活码管理
+  // ========================================
+  let agents = []
+  let lastGenerated = []
+
+  async function loadAgents() {
+    try {
+      const r = await api('/agent-codes')
+      agents = r.agents || []
+      renderAgents()
+    } catch (e) {
+      toast('加载失败: ' + e.message, true)
+    }
+  }
+
+  function renderAgents() {
+    const empty = document.getElementById('agentEmpty')
+    const list = document.getElementById('agentList')
+    const stats = document.getElementById('agentStats')
+    if (agents.length === 0) {
+      empty.classList.remove('hidden-impl')
+      list.classList.add('hidden-impl')
+      stats.classList.add('hidden-impl')
+      return
+    }
+    empty.classList.add('hidden-impl')
+    list.classList.remove('hidden-impl')
+    stats.classList.remove('hidden-impl')
+
+    document.getElementById('statTotal').textContent = agents.length
+    document.getElementById('statActive').textContent = agents.filter((a) => a.status === 1).length
+    document.getElementById('statDisabled').textContent = agents.filter((a) => a.status === 2).length
+
+    const tbody = document.getElementById('agentTbody')
+    tbody.innerHTML = agents.map((a) => {
+      const statusBadge =
+        a.status === 0 ? `<span class="px-2 py-0.5 rounded text-xs bg-slate-100 text-slate-600">未激活</span>` :
+        a.status === 1 ? `<span class="px-2 py-0.5 rounded text-xs bg-emerald-100 text-emerald-700">已激活</span>` :
+        `<span class="px-2 py-0.5 rounded text-xs bg-rose-100 text-rose-700">已停用</span>`
+      const lastActive = a.lastActiveAt ? formatAgo(Date.now() - new Date(a.lastActiveAt).getTime()) : '—'
+      const lastIp = a.lastActiveIp ? `<div class="text-xs text-slate-400">${escapeHtml(a.lastActiveIp)}</div>` : ''
+      const labelHtml = a.label
+        ? `<span>${escapeHtml(a.label)}</span>`
+        : `<span class="text-slate-400">—</span>`
+      const toggleBtn = a.status === 2
+        ? `<button onclick='enableAgent(${a.id})' class="h-8 px-2 rounded-lg text-emerald-700 hover:bg-emerald-50 text-xs">恢复</button>`
+        : `<button onclick='disableAgent(${a.id})' class="h-8 px-2 rounded-lg text-amber-700 hover:bg-amber-50 text-xs">停用</button>`
+      return `
+        <tr>
+          <td class="px-4 py-3">
+            <div class="font-mono text-sm text-slate-800 select-all">${escapeHtml(a.code)}</div>
+            <button onclick='copyText(${JSON.stringify(a.code)})' class="text-xs text-violet-600 hover:underline mt-0.5">复制</button>
+          </td>
+          <td class="px-4 py-3">
+            ${labelHtml}
+            <button onclick='editLabel(${a.id})' class="text-xs text-slate-400 hover:text-slate-700 ml-2">改</button>
+          </td>
+          <td class="px-4 py-3">${statusBadge}</td>
+          <td class="px-4 py-3">
+            <div class="text-sm">${lastActive}</div>
+            ${lastIp}
+          </td>
+          <td class="px-4 py-3 text-slate-600">${a.useCount}</td>
+          <td class="px-4 py-3 text-right space-x-1 pr-6">
+            ${toggleBtn}
+            <button onclick='deleteAgent(${a.id})' class="h-8 px-2 rounded-lg text-rose-600 hover:bg-rose-50 text-xs">删除</button>
+          </td>
+        </tr>`
+    }).join('')
+  }
+
+  function openAgentForm() {
+    document.getElementById('agentCreateView').classList.remove('hidden-impl')
+    document.getElementById('agentResultView').classList.add('hidden-impl')
+    document.getElementById('ag_count').value = '1'
+    document.getElementById('ag_label').value = ''
+    document.getElementById('ag_genBtn').textContent = '生成'
+    document.getElementById('ag_genBtn').onclick = generateAgents
+    document.getElementById('ag_cancelBtn').textContent = '取消'
+    show('agentModal')
+  }
+  function closeAgentForm() {
+    hide('agentModal')
+  }
+
+  async function generateAgents() {
+    const count = parseInt(document.getElementById('ag_count').value, 10) || 1
+    const label = document.getElementById('ag_label').value.trim()
+    const btn = document.getElementById('ag_genBtn')
+    btn.disabled = true
+    btn.textContent = '生成中…'
+    try {
+      const r = await api('/agent-codes', { method: 'POST', body: { count, label } })
+      lastGenerated = r.agents
+      // 切到结果视图
+      document.getElementById('agentCreateView').classList.add('hidden-impl')
+      document.getElementById('agentResultView').classList.remove('hidden-impl')
+      document.getElementById('ag_resultCount').textContent = lastGenerated.length
+      document.getElementById('ag_resultList').innerHTML = lastGenerated
+        .map((a) => `<div class="select-all">${escapeHtml(a.code)}</div>`)
+        .join('')
+      btn.classList.add('hidden-impl')
+      document.getElementById('ag_cancelBtn').textContent = '完成'
+      loadAgents()
+    } catch (e) {
+      toast('生成失败: ' + e.message, true)
+    } finally {
+      btn.disabled = false
+      btn.textContent = '生成'
+      btn.classList.remove('hidden-impl')
+    }
+  }
+
+  function copyAllCodes() {
+    const text = lastGenerated.map((a) => a.code).join('\n')
+    navigator.clipboard.writeText(text).then(
+      () => toast('已复制 ' + lastGenerated.length + ' 个激活码到剪贴板'),
+      () => toast('复制失败', true)
+    )
+  }
+
+  function copyText(text) {
+    navigator.clipboard.writeText(text).then(
+      () => toast('已复制'),
+      () => toast('复制失败', true)
+    )
+  }
+
+  async function disableAgent(id) {
+    const a = agents.find((x) => x.id === id)
+    if (!a) return
+    if (!confirm(`确定停用激活码「${a.code}」？\n\n停用后该代理客户端会立即无法拉取商品。`)) return
+    try {
+      await api('/agent-codes/' + id, { method: 'PUT', body: { status: 2 } })
+      toast('已停用')
+      loadAgents()
+    } catch (e) {
+      toast('失败: ' + e.message, true)
+    }
+  }
+
+  async function enableAgent(id) {
+    try {
+      await api('/agent-codes/' + id, { method: 'PUT', body: { status: 1 } })
+      toast('已恢复')
+      loadAgents()
+    } catch (e) {
+      toast('失败: ' + e.message, true)
+    }
+  }
+
+  async function editLabel(id) {
+    const a = agents.find((x) => x.id === id)
+    if (!a) return
+    const newLabel = prompt('修改备注:', a.label || '')
+    if (newLabel === null) return
+    try {
+      await api('/agent-codes/' + id, { method: 'PUT', body: { label: newLabel } })
+      toast('已更新')
+      loadAgents()
+    } catch (e) {
+      toast('失败: ' + e.message, true)
+    }
+  }
+
+  async function deleteAgent(id) {
+    const a = agents.find((x) => x.id === id)
+    if (!a) return
+    if (!confirm(`确定删除激活码「${a.code}」？\n\n建议优先用"停用"，删除后该激活码完全消失，无法恢复。`)) return
+    try {
+      await api('/agent-codes/' + id, { method: 'DELETE' })
+      toast('已删除')
+      loadAgents()
+    } catch (e) {
+      toast('失败: ' + e.message, true)
+    }
+  }
+
+  function formatAgo(ms) {
+    if (ms < 0) return '刚刚'
+    if (ms < 5000) return '刚刚'
+    const s = Math.round(ms / 1000)
+    if (s < 60) return s + ' 秒前'
+    const m = Math.round(s / 60)
+    if (m < 60) return m + ' 分钟前'
+    const h = Math.round(m / 60)
+    if (h < 24) return h + ' 小时前'
+    return Math.round(h / 24) + ' 天前'
+  }
+
+  // 启动
+  if (token) tryAutoLogin()
+  // 点击遮罩关闭弹窗
+  document.getElementById('modal').addEventListener('click', closeForm)
+  document.getElementById('agentModal').addEventListener('click', closeAgentForm)
+</script>
+
+</body>
+</html>

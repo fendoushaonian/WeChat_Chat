@@ -1,0 +1,758 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+ * Material Design 3 Design System
+ * 参考: https://m3.material.io/
+ * ============================================ */
+
+:root {
+  color-scheme: light;
+
+  /* Material 3 color roles */
+  --md-primary: #6750a4;
+  --md-on-primary: #ffffff;
+  --md-primary-container: #eaddff;
+  --md-on-primary-container: #21005d;
+
+  --md-secondary: #625b71;
+  --md-on-secondary: #ffffff;
+  --md-secondary-container: #e8def8;
+  --md-on-secondary-container: #1d192b;
+
+  --md-tertiary: #1a73e8;
+  --md-tertiary-container: #d3e3fd;
+
+  --md-error: #ba1a1a;
+  --md-error-container: #ffdad6;
+
+  --md-surface: #fdf8fd;
+  --md-surface-dim: #ded8e1;
+  --md-surface-bright: #fef7ff;
+  --md-surface-container-lowest: #ffffff;
+  --md-surface-container-low: #f7f2fa;
+  --md-surface-container: #f3edf7;
+  --md-surface-container-high: #ece6f0;
+  --md-surface-container-highest: #e6e0e9;
+
+  --md-on-surface: #1d1b20;
+  --md-on-surface-variant: #49454f;
+  --md-outline: #79747e;
+  --md-outline-variant: #cac4d0;
+
+  /* Motion */
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* State layer opacities */
+  --state-hover: 0.08;
+  --state-focus: 0.12;
+  --state-press: 0.12;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', 'Google Sans Text', Roboto, -apple-system, BlinkMacSystemFont,
+    'PingFang SC', 'Microsoft YaHei', 'Segoe UI', 'Helvetica Neue', sans-serif;
+  font-size: 14px;
+  color: var(--md-on-surface);
+  background: var(--md-surface);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  user-select: none;
+  /* 轻微 primary tint 的柔和渐变背景 */
+  background-image: radial-gradient(
+      1200px 600px at 10% -10%,
+      rgba(103, 80, 164, 0.06),
+      transparent 60%
+    ),
+    radial-gradient(800px 500px at 90% 110%, rgba(26, 115, 232, 0.05), transparent 60%),
+    linear-gradient(180deg, var(--md-surface-bright), var(--md-surface));
+}
+
+input,
+textarea,
+[contenteditable] {
+  user-select: text;
+}
+
+/* ============================================ */
+/* Scrollbar - Material 风格                    */
+/* ============================================ */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+*:hover::-webkit-scrollbar-thumb {
+  background: rgba(73, 69, 79, 0.24);
+  background-clip: content-box;
+  border: 3px solid transparent;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(73, 69, 79, 0.4);
+  background-clip: content-box;
+  border: 3px solid transparent;
+}
+
+/* ============================================ */
+/* 统一 focus 样式                              */
+/* ============================================ */
+*:focus {
+  outline: none;
+}
+*:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+a,
+img {
+  -webkit-user-drag: none;
+}
+
+/* 标题栏拖动区域 */
+.drag-region {
+  -webkit-app-region: drag;
+}
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+.mac-titlebar-pad {
+  padding-left: 78px;
+}
+
+/* ============================================ */
+/* M3 Cards                                     */
+/* ============================================ */
+.m3-card-filled {
+  background: var(--md-surface-container-low);
+  border-radius: 16px;
+  border: 1px solid transparent;
+}
+.m3-card-elevated {
+  background: var(--md-surface-container-lowest);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 1px 3px 1px rgba(0, 0, 0, 0.06);
+}
+.m3-card-outlined {
+  background: var(--md-surface);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 16px;
+}
+
+/* ============================================ */
+/* M3 Buttons                                   */
+/* ============================================ */
+
+/* Filled (primary action) */
+.m3-btn-filled {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 24px;
+  border: none;
+  border-radius: 9999px;
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: box-shadow 0.18s var(--ease-emphasized), background-color 0.18s,
+    transform 0.15s;
+  overflow: hidden;
+  isolation: isolate;
+}
+.m3-btn-filled::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  z-index: -1;
+}
+.m3-btn-filled:hover:not(:disabled) {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 2px 6px 2px rgba(0, 0, 0, 0.1);
+}
+.m3-btn-filled:hover:not(:disabled)::before {
+  opacity: var(--state-hover);
+}
+.m3-btn-filled:active:not(:disabled)::before {
+  opacity: var(--state-press);
+}
+.m3-btn-filled:disabled {
+  background: rgba(29, 27, 32, 0.12);
+  color: rgba(29, 27, 32, 0.38);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Tonal (secondary action) */
+.m3-btn-tonal {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 9999px;
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background-color 0.15s, box-shadow 0.18s var(--ease-emphasized);
+  overflow: hidden;
+  isolation: isolate;
+}
+.m3-btn-tonal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--md-on-secondary-container);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  z-index: -1;
+}
+.m3-btn-tonal:hover:not(:disabled)::before {
+  opacity: var(--state-hover);
+}
+.m3-btn-tonal:hover:not(:disabled) {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04), 0 1px 3px 1px rgba(0, 0, 0, 0.06);
+}
+
+/* Outlined */
+.m3-btn-outlined {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 20px;
+  background: transparent;
+  color: var(--md-primary);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+  overflow: hidden;
+  isolation: isolate;
+}
+.m3-btn-outlined::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--md-primary);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  z-index: -1;
+}
+.m3-btn-outlined:hover:not(:disabled)::before {
+  opacity: var(--state-hover);
+}
+.m3-btn-outlined:hover:not(:disabled) {
+  border-color: var(--md-outline);
+}
+
+/* Text */
+.m3-btn-text {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+  background: transparent;
+  color: var(--md-primary);
+  border: none;
+  border-radius: 9999px;
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  overflow: hidden;
+  isolation: isolate;
+}
+.m3-btn-text::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--md-primary);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  z-index: -1;
+}
+.m3-btn-text:hover:not(:disabled)::before {
+  opacity: var(--state-hover);
+}
+
+/* Icon button (circular, 40px) */
+.m3-icon-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  border: none;
+  background: transparent;
+  color: var(--md-on-surface-variant);
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+  isolation: isolate;
+  overflow: hidden;
+}
+.m3-icon-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  z-index: -1;
+}
+.m3-icon-btn:hover:not(:disabled)::before {
+  opacity: var(--state-hover);
+}
+.m3-icon-btn:active:not(:disabled)::before {
+  opacity: var(--state-press);
+}
+.m3-icon-btn:disabled {
+  color: rgba(29, 27, 32, 0.3);
+  cursor: not-allowed;
+}
+
+/* ============================================ */
+/* M3 Chips (Filter/Input)                      */
+/* ============================================ */
+.m3-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 9999px;
+  background: transparent;
+  border: 1px solid var(--md-outline-variant);
+  color: var(--md-on-surface-variant);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+  user-select: none;
+  isolation: isolate;
+  overflow: hidden;
+}
+.m3-chip::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--md-on-surface);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  z-index: -1;
+}
+.m3-chip:hover::before {
+  opacity: var(--state-hover);
+}
+.m3-chip.is-active {
+  background: var(--md-secondary-container);
+  border-color: transparent;
+  color: var(--md-on-secondary-container);
+}
+.m3-chip.is-active::before {
+  background: var(--md-on-secondary-container);
+}
+
+/* ============================================ */
+/* M3 Text Fields (outlined)                    */
+/* ============================================ */
+.m3-field {
+  position: relative;
+  display: block;
+}
+.m3-field-input {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  background: transparent;
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--md-on-surface);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  font-family: inherit;
+}
+.m3-field-input::placeholder {
+  color: var(--md-on-surface-variant);
+  opacity: 0.7;
+}
+.m3-field-input:hover {
+  border-color: var(--md-on-surface);
+}
+.m3-field-input:focus {
+  border-color: var(--md-primary);
+  border-width: 2px;
+  padding: 0 15px;
+}
+
+.m3-field-textarea {
+  width: 100%;
+  min-height: 96px;
+  padding: 12px 16px;
+  background: transparent;
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--md-on-surface);
+  transition: border-color 0.15s;
+  font-family: inherit;
+  resize: vertical;
+}
+.m3-field-textarea::placeholder {
+  color: var(--md-on-surface-variant);
+  opacity: 0.7;
+}
+.m3-field-textarea:hover {
+  border-color: var(--md-on-surface);
+}
+.m3-field-textarea:focus {
+  border-color: var(--md-primary);
+  border-width: 2px;
+  padding: 11px 15px;
+}
+
+/* ============================================ */
+/* Navigation Drawer item                       */
+/* ============================================ */
+.m3-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 56px;
+  padding: 0 20px;
+  margin: 0 12px;
+  border-radius: 9999px;
+  color: var(--md-on-surface-variant);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background-color 0.18s;
+  user-select: none;
+  isolation: isolate;
+  overflow: hidden;
+}
+.m3-nav-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--md-on-surface);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  z-index: -1;
+}
+.m3-nav-item:hover::before {
+  opacity: var(--state-hover);
+}
+.m3-nav-item.is-active {
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+  font-weight: 600;
+}
+.m3-nav-item.is-active::before {
+  background: var(--md-on-secondary-container);
+}
+
+/* ============================================ */
+/* Toast / Snackbar                             */
+/* ============================================ */
+.m3-snackbar {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 256px;
+  max-width: 480px;
+  background: #322f35;
+  color: #f5eff7;
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  z-index: 9999;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.12), 0 8px 20px 0 rgba(0, 0, 0, 0.15);
+  animation: snackbarIn 0.28s var(--ease-emphasized);
+  pointer-events: none;
+}
+@keyframes snackbarIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* ============================================ */
+/* Skeleton (shimmer)                           */
+/* ============================================ */
+.m3-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--md-surface-container) 0%,
+    var(--md-surface-container-high) 50%,
+    var(--md-surface-container) 100%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 1.8s infinite linear;
+  border-radius: 8px;
+}
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+/* ============================================ */
+/* Result card (M3 filled card with hover)      */
+/* ============================================ */
+.m3-result-card {
+  position: relative;
+  background: var(--md-surface-container-lowest);
+  border-radius: 16px;
+  padding: 20px 22px;
+  border: 1px solid var(--md-outline-variant);
+  transition: border-color 0.2s, box-shadow 0.2s var(--ease-emphasized),
+    transform 0.2s var(--ease-emphasized);
+  animation: cardIn 0.35s var(--ease-emphasized) both;
+}
+.m3-result-card:hover {
+  border-color: transparent;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04), 0 4px 14px 2px rgba(103, 80, 164, 0.08);
+  transform: translateY(-1px);
+}
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================ */
+/* FAB (Floating Action Button)                 */
+/* ============================================ */
+.m3-fab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 52px;
+  padding: 0 22px 0 18px;
+  /* 粉紫渐变 - 呼应 app 图标配色 */
+  background: linear-gradient(135deg, #FF85A1 0%, #E2558D 48%, #8A3FBE 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  box-shadow:
+    0 1px 2px 0 rgba(150, 40, 100, 0.18),
+    0 8px 22px -4px rgba(180, 60, 140, 0.45),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.22);
+  transition: box-shadow 0.25s var(--ease-emphasized), transform 0.2s var(--ease-emphasized),
+    filter 0.25s ease;
+  isolation: isolate;
+  overflow: hidden;
+}
+/* 内高光 */
+.m3-fab::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0) 55%);
+  pointer-events: none;
+  z-index: -1;
+}
+/* hover 时一束光扫过 */
+.m3-fab::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.35) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: skewX(-20deg);
+  pointer-events: none;
+  transition: left 0.8s var(--ease-emphasized);
+  z-index: -1;
+}
+.m3-fab:hover:not(:disabled)::before {
+  left: 120%;
+}
+.m3-fab:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.04) saturate(1.05);
+  box-shadow:
+    0 2px 4px 0 rgba(150, 40, 100, 0.25),
+    0 14px 32px -4px rgba(180, 60, 140, 0.55),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
+}
+.m3-fab:active:not(:disabled) {
+  transform: translateY(0);
+  filter: brightness(0.96);
+}
+.m3-fab:disabled {
+  background: #e8deef;
+  color: rgba(29, 27, 32, 0.4);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+.m3-fab:disabled::after,
+.m3-fab:disabled::before {
+  display: none;
+}
+
+/* Segmented button group (M3) */
+.m3-segment {
+  display: inline-flex;
+  border: 1px solid var(--md-outline);
+  border-radius: 9999px;
+  overflow: hidden;
+  height: 40px;
+}
+.m3-segment-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--md-on-surface);
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--md-outline);
+  cursor: pointer;
+  transition: background-color 0.15s;
+  white-space: nowrap;
+}
+.m3-segment-item:last-child {
+  border-right: none;
+}
+.m3-segment-item:hover:not(.is-active) {
+  background: rgba(29, 27, 32, 0.06);
+}
+.m3-segment-item.is-active {
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+  font-weight: 600;
+}
+
+/* Divider */
+.m3-divider {
+  height: 1px;
+  background: var(--md-outline-variant);
+}
+
+/* Dialog container */
+.m3-dialog {
+  background: var(--md-surface-container-lowest);
+  border-radius: 28px;
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.16), 0 2px 6px 0 rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  animation: dialogIn 0.22s var(--ease-emphasized);
+}
+@keyframes dialogIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Shake (for wrong password etc.) */
+.animate-shake {
+  animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+@keyframes shake {
+  10%, 90% {
+    transform: translate3d(-1px, 0, 0);
+  }
+  20%, 80% {
+    transform: translate3d(2px, 0, 0);
+  }
+  30%, 50%, 70% {
+    transform: translate3d(-4px, 0, 0);
+  }
+  40%, 60% {
+    transform: translate3d(4px, 0, 0);
+  }
+}

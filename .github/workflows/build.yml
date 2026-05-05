@@ -1,0 +1,111 @@
+name: Build Desktop Apps (Windows + Mac)
+
+# 触发条件:
+#   1) push tag (vX.Y.Z) → 自动构建 + 创建 GitHub Release
+#   2) workflow_dispatch → 手动在 Actions 页面点按钮触发(出 artifacts 不发 release)
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      flavor:
+        description: '构建 flavor (agent=代理版 / admin=管理员版)'
+        required: true
+        default: 'agent'
+        type: choice
+        options:
+          - agent
+          - admin
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci
+
+      # ====== Windows 打包 ======
+      - name: Build (Windows · agent)
+        if: matrix.os == 'windows-latest' && (github.event.inputs.flavor == 'agent' || github.event_name == 'push')
+        run: npm run dist:agent
+        env:
+          # 关闭代码签名(我们没买证书, 用户首次安装会看到"未知发布者"warning)
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build (Windows · admin)
+        if: matrix.os == 'windows-latest' && github.event.inputs.flavor == 'admin'
+        run: npm run dist:admin
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ====== Mac 打包 ======
+      - name: Build (Mac · agent)
+        if: matrix.os == 'macos-latest' && (github.event.inputs.flavor == 'agent' || github.event_name == 'push')
+        run: npm run dist:agent:mac
+        env:
+          # Mac 不做签名/notarize, 用户首次右键打开
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build (Mac · admin)
+        if: matrix.os == 'macos-latest' && github.event.inputs.flavor == 'admin'
+        run: npm run dist:admin:mac
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ====== 上传安装包到 Actions Artifacts ======
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-installers
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.blockmap
+            release/latest*.yml
+          if-no-files-found: warn
+          retention-days: 30
+
+  # ====== 推 tag 时自动创建 GitHub Release ======
+  release:
+    name: Create GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            artifacts/**/*.exe
+            artifacts/**/*.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

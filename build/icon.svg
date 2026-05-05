@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- 主背景径向渐变 - 粉紫色调, 呼应朋友圈社交主题 -->
+    <radialGradient id="bgGrad" cx="30%" cy="20%" r="110%">
+      <stop offset="0%" stop-color="#FF85A1"/>
+      <stop offset="45%" stop-color="#E2558D"/>
+      <stop offset="100%" stop-color="#7B2FCB"/>
+    </radialGradient>
+    <!-- 纸飞机渐变 - 白色带一点冷暖 -->
+    <linearGradient id="planeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="70%" stop-color="#F6F1FB"/>
+      <stop offset="100%" stop-color="#E4D8F0"/>
+    </linearGradient>
+    <!-- 纸飞机阴影折痕 -->
+    <linearGradient id="creaseGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C0A9D9" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#8B5CB8" stop-opacity="0.35"/>
+    </linearGradient>
+    <!-- 发光光晕 -->
+    <radialGradient id="glowGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.55"/>
+      <stop offset="60%" stop-color="#FFFFFF" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <!-- 整体投影 -->
+    <filter id="planeShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="14"/>
+      <feOffset dx="0" dy="12" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.45"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- 圆角方形背景 (macOS 风格圆角 ~22%) -->
+  <rect x="0" y="0" width="1024" height="1024" rx="228" ry="228" fill="url(#bgGrad)"/>
+
+  <!-- 左上光晕, 增加质感 -->
+  <ellipse cx="300" cy="230" rx="420" ry="320" fill="url(#glowGrad)"/>
+
+  <!-- 装饰小点: 聊天气泡隐喻 (左下角) -->
+  <circle cx="170" cy="830" r="16" fill="#FFFFFF" opacity="0.35"/>
+  <circle cx="230" cy="870" r="10" fill="#FFFFFF" opacity="0.28"/>
+  <circle cx="270" cy="895" r="6" fill="#FFFFFF" opacity="0.22"/>
+
+  <!-- 装饰小点: 右上角闪光 -->
+  <g opacity="0.75">
+    <path d="M 840 220 L 850 250 L 880 260 L 850 270 L 840 300 L 830 270 L 800 260 L 830 250 Z" fill="#FFFFFF"/>
+    <path d="M 760 330 L 767 350 L 787 357 L 767 364 L 760 384 L 753 364 L 733 357 L 753 350 Z" fill="#FFFFFF" opacity="0.55"/>
+  </g>
+
+  <!-- 纸飞机主体 (居中稍偏上, 动感倾斜) -->
+  <g filter="url(#planeShadow)" transform="translate(512 530) rotate(-8) translate(-512 -530)">
+    <!-- 下翼 (暗色折面) -->
+    <path d="M 280 620 L 540 640 L 512 780 Z"
+          fill="url(#creaseGrad)"/>
+    <!-- 主机身 (亮白三角) -->
+    <path d="M 820 260 L 280 620 L 540 640 L 760 560 Z"
+          fill="url(#planeGrad)"/>
+    <!-- 右翼 (相对较暗, 对比立体) -->
+    <path d="M 820 260 L 760 560 L 660 620 L 600 700 L 555 595 Z"
+          fill="url(#creaseGrad)"/>
+    <!-- 折痕高亮线 -->
+    <path d="M 820 260 L 540 640"
+          stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" opacity="0.85" fill="none"/>
+    <!-- 机身下沿高光 -->
+    <path d="M 280 620 L 540 640"
+          stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.45" fill="none"/>
+  </g>
+
+  <!-- 飞行尾迹 (曲线虚线) -->
+  <path d="M 130 720 Q 260 650, 300 610"
+        stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"
+        stroke-dasharray="4 22" opacity="0.5" fill="none"/>
+  <path d="M 80 830 Q 180 790, 250 745"
+        stroke="#FFFFFF" stroke-width="7" stroke-linecap="round"
+        stroke-dasharray="3 18" opacity="0.35" fill="none"/>
+</svg>
