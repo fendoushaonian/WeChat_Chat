@@ -30,14 +30,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node 20
+      - name: Setup Node 22
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install deps
         run: npm ci
+        env:
+          npm_config_electron_mirror: https://npmmirror.com/mirrors/electron/
+          npm_config_electron_builder_binaries_mirror: https://npmmirror.com/mirrors/electron-builder-binaries/
 
       # ====== Windows 打包 ======
       - name: Build (Windows · agent)
