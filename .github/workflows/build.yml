@@ -41,32 +41,28 @@ jobs:
       # ====== Windows 打包 ======
       - name: Build (Windows · agent)
         if: matrix.os == 'windows-latest' && (github.event.inputs.flavor == 'agent' || github.event_name == 'push')
-        run: npm run dist:agent
+        run: npm run build:agent && npx electron-builder --win --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build (Windows · admin)
         if: matrix.os == 'windows-latest' && github.event.inputs.flavor == 'admin'
-        run: npm run dist:admin
+        run: npm run build:admin && npx electron-builder --win --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # ====== Mac 打包 ======
       - name: Build (Mac · agent)
         if: matrix.os == 'macos-latest' && (github.event.inputs.flavor == 'agent' || github.event_name == 'push')
-        run: npm run dist:agent:mac
+        run: npm run build:agent && npx electron-builder --mac --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build (Mac · admin)
         if: matrix.os == 'macos-latest' && github.event.inputs.flavor == 'admin'
-        run: npm run dist:admin:mac
+        run: npm run build:admin && npx electron-builder --mac --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # ====== 上传安装包到 Actions Artifacts ======
       - name: Upload artifacts
