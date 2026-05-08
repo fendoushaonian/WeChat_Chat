@@ -63,6 +63,8 @@ export interface Product {
   extraRules?: string
   /** 商品封面图 URL (http/https/data URL, 可选) */
   coverUrl?: string
+  /** 商品展示图 URL 数组 (最多9张, 可选) */
+  images?: string[]
   /** 价格文本 (展示用, 如"¥89"、"限时 ¥69") */
   priceText?: string
   /** 是否为内置商品 (true 则不允许删除) */
@@ -86,6 +88,13 @@ declare global {
       }
       shell: {
         openExternal: (url: string) => Promise<boolean>
+      }
+      save: {
+        imageText: (payload: {
+          text: string
+          imageUrls: string[]
+          productName: string
+        }) => Promise<{ ok: true; dir: string; savedCount: number } | { ok: false; error: string }>
       }
       ai: {
         generate: (payload: {

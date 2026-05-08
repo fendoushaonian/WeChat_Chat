@@ -8,7 +8,7 @@ export default function Favorites() {
 
   return (
     <div className="flex h-full flex-col bg-surface">
-      <div className="shrink-0 px-8 pt-8 pb-4">
+      <div className="shrink-0 px-4 pt-6 pb-4 md:px-8 md:pt-8">
         <div className="mx-auto max-w-[760px] flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary-container text-on-secondary-container">
             <Icon name="star-filled" size={22} />
@@ -24,7 +24,7 @@ export default function Favorites() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-8 pb-8">
+      <div className="flex-1 overflow-y-auto px-4 pb-8 md:px-8">
         <div className="mx-auto max-w-[760px]">
           {favorites.length === 0 ? (
             <div className="rounded-3xl bg-surface-container-low px-6 py-20 text-center">

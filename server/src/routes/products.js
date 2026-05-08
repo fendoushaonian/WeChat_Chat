@@ -24,6 +24,7 @@ function rowToProduct(row) {
     scenes: parseJsonArray(row.scenes),
     extraRules: row.extra_rules || undefined,
     coverUrl: row.cover_url || undefined,
+    images: parseJsonArray(row.images),
     priceText: row.price_text || undefined,
     builtIn: !!row.built_in,
     ownerAgentId: row.owner_agent_id == null ? null : Number(row.owner_agent_id),
@@ -36,6 +37,7 @@ function rowToProduct(row) {
 /**
  * 根据 token 角色推导 owner 过滤条件
  * 返回 { whereSql, args, ownerForInsert }
+ * 用于写操作 (POST/PUT/DELETE): 只能操作自己的商品
  */
 function ownerScope(req) {
   if (req.agent) {
@@ -50,6 +52,19 @@ function ownerScope(req) {
     whereSql: 'owner_agent_id IS NULL',
     args: [],
     ownerForInsert: null,
+  }
+}
+
+/**
+ * 读取作用域 (GET 列表/详情)
+ * agent: 能看到管理员的商品 (owner_agent_id IS NULL) + 自己的商品
+ * admin: 只看 owner_agent_id IS NULL 的
+ */
+function readScope(req) {
+  // 代理和管理员都只看管理员发布的商品 (owner_agent_id IS NULL)
+  return {
+    whereSql: 'owner_agent_id IS NULL',
+    args: [],
   }
 }
 
@@ -103,6 +118,11 @@ function sanitize(input, { partial = false } = {}) {
   if (input.coverUrl !== undefined) {
     out.coverUrl = String(input.coverUrl || '').trim().slice(0, 2000) || null
   }
+  if (input.images !== undefined) {
+    out.images = Array.isArray(input.images)
+      ? input.images.map((s) => String(s).trim()).filter(Boolean).slice(0, 9)
+      : []
+  }
   if (input.priceText !== undefined) {
     out.priceText = String(input.priceText || '').trim().slice(0, 100) || null
   }
@@ -126,7 +146,7 @@ function sanitize(input, { partial = false } = {}) {
  */
 router.get('/', requireAgentOrAdmin, async (req, res) => {
   try {
-    const scope = ownerScope(req)
+    const scope = readScope(req)
     const includeInactive = req.query.all === '1'
     const where = includeInactive
       ? scope.whereSql
@@ -151,7 +171,7 @@ router.get('/', requireAgentOrAdmin, async (req, res) => {
  */
 router.get('/:id', requireAgentOrAdmin, async (req, res) => {
   try {
-    const scope = ownerScope(req)
+    const scope = readScope(req)
     const [rows] = await pool.query(
       `SELECT * FROM products WHERE id = ? AND ${scope.whereSql} LIMIT 1`,
       [req.params.id, ...scope.args]
@@ -169,6 +189,7 @@ router.get('/:id', requireAgentOrAdmin, async (req, res) => {
  * 自动绑定 owner_agent_id: agent token -> 自己, admin token -> NULL
  */
 router.post('/', requireAgentOrAdmin, async (req, res) => {
+  if (req.agent) return res.status(403).json({ error: '代理无权新增商品' })
   try {
     const data = sanitize(req.body || {})
     const scope = ownerScope(req)
@@ -180,8 +201,8 @@ router.post('/', requireAgentOrAdmin, async (req, res) => {
     await pool.query(
       `INSERT INTO products
        (id, name, tagline, selling_points, description, scenes, extra_rules,
-        cover_url, price_text, built_in, owner_agent_id, active, sort_order)
-       VALUES (?, ?, ?, CAST(? AS JSON), ?, CAST(? AS JSON), ?, ?, ?, ?, ?, ?, ?)`,
+        cover_url, images, price_text, built_in, owner_agent_id, active, sort_order)
+       VALUES (?, ?, ?, CAST(? AS JSON), ?, CAST(? AS JSON), ?, ?, CAST(? AS JSON), ?, ?, ?, ?, ?)`,
       [
         id,
         data.name,
@@ -191,6 +212,7 @@ router.post('/', requireAgentOrAdmin, async (req, res) => {
         JSON.stringify(data.scenes || []),
         data.extraRules ?? null,
         data.coverUrl ?? null,
+        JSON.stringify(data.images || []),
         data.priceText ?? null,
         builtIn,
         scope.ownerForInsert,
@@ -214,6 +236,7 @@ router.post('/', requireAgentOrAdmin, async (req, res) => {
  * 仅能改自己的(按 owner 隔离); 部分更新
  */
 router.put('/:id', requireAgentOrAdmin, async (req, res) => {
+  if (req.agent) return res.status(403).json({ error: '代理无权修改商品' })
   try {
     const data = sanitize(req.body || {}, { partial: true })
     const scope = ownerScope(req)
@@ -248,6 +271,10 @@ router.put('/:id', requireAgentOrAdmin, async (req, res) => {
       sets.push('scenes = CAST(? AS JSON)')
       args.push(JSON.stringify(data.scenes))
     }
+    if (data.images !== undefined) {
+      sets.push('images = CAST(? AS JSON)')
+      args.push(JSON.stringify(data.images))
+    }
     if (sets.length === 0) {
       return res.status(400).json({ error: '没有需要更新的字段' })
     }
@@ -274,6 +301,7 @@ router.put('/:id', requireAgentOrAdmin, async (req, res) => {
  * 仅能删自己的
  */
 router.delete('/:id', requireAgentOrAdmin, async (req, res) => {
+  if (req.agent) return res.status(403).json({ error: '代理无权删除商品' })
   try {
     const scope = ownerScope(req)
     const [r] = await pool.query(

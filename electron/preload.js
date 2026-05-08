@@ -12,6 +12,9 @@ contextBridge.exposeInMainWorld('api', {
   shell: {
     openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),
   },
+  save: {
+    imageText: (payload) => ipcRenderer.invoke('save:imageText', payload),
+  },
   ai: {
     generate: (payload) => ipcRenderer.invoke('ai:generate', payload),
   },

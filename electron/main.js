@@ -1,6 +1,8 @@
-const { app, BrowserWindow, ipcMain, shell, clipboard, Menu } = require('electron')
+const { app, BrowserWindow, ipcMain, shell, clipboard, Menu, dialog } = require('electron')
 const path = require('path')
 const fs = require('fs')
+const https = require('https')
+const http = require('http')
 const { chatCompletion } = require('./aiProvider')
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
@@ -190,5 +192,62 @@ ipcMain.handle('ai:generate', async (_e, { settings, messages }) => {
     return { ok: true, text }
   } catch (err) {
     return { ok: false, error: (err && err.message) || String(err) }
+  }
+})
+
+// 下载单个远程图片
+function downloadFile(url) {
+  return new Promise((resolve, reject) => {
+    const mod = url.startsWith('https') ? https : http
+    mod.get(url, { timeout: 15000 }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        return downloadFile(res.headers.location).then(resolve).catch(reject)
+      }
+      if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`))
+      const chunks = []
+      res.on('data', (c) => chunks.push(c))
+      res.on('end', () => resolve(Buffer.concat(chunks)))
+      res.on('error', reject)
+    }).on('error', reject)
+  })
+}
+
+// 保存图文到本地文件夹
+ipcMain.handle('save:imageText', async (_e, { text, imageUrls, productName }) => {
+  try {
+    const { filePath: dirPath } = await dialog.showSaveDialog(mainWindow, {
+      title: '保存图文到文件夹',
+      defaultPath: path.join(app.getPath('desktop'), productName || '图文'),
+      buttonLabel: '保存',
+      properties: ['createDirectory'],
+    })
+    if (!dirPath) return { ok: false, error: 'cancelled' }
+
+    const saveDir = dirPath
+    if (!fs.existsSync(saveDir)) fs.mkdirSync(saveDir, { recursive: true })
+
+    // 保存文案
+    fs.writeFileSync(path.join(saveDir, '文案.txt'), text, 'utf-8')
+
+    // 下载图片
+    const saved = []
+    for (let i = 0; i < imageUrls.length; i++) {
+      try {
+        const url = imageUrls[i]
+        const ext = (url.match(/\.(jpg|jpeg|png|webp|gif)/i) || [null, 'jpg'])[1]
+        const buf = await downloadFile(url)
+        const fname = `图片${String(i + 1).padStart(2, '0')}.${ext}`
+        fs.writeFileSync(path.join(saveDir, fname), buf)
+        saved.push(fname)
+      } catch (err) {
+        console.error(`[save] image ${i} failed:`, err.message)
+      }
+    }
+
+    // 打开文件夹
+    shell.openPath(saveDir)
+    return { ok: true, dir: saveDir, savedCount: saved.length }
+  } catch (err) {
+    return { ok: false, error: err.message || String(err) }
   }
 })

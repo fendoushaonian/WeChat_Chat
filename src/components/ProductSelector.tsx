@@ -16,6 +16,7 @@ export default function ProductSelector() {
   const syncError = useStore((s) => s.syncError)
   const lastSyncAt = useStore((s) => s.lastSyncAt)
   const syncProducts = useStore((s) => s.syncProducts)
+  const isAdmin = useStore((s) => s.isAdmin)
 
   if (products.length === 0) {
     return (
@@ -25,46 +26,59 @@ export default function ProductSelector() {
         </div>
         <div className="text-title-md text-on-surface">还没有商品</div>
         <div className="mt-1 text-body-sm text-on-surface-variant">
-          去「商品管理」添加你的第一个商品
+          {isAdmin ? '去「商品管理」添加你的第一个商品' : '暂无可用商品，请联系管理员添加'}
         </div>
-        <button
-          className="m3-btn-tonal mt-4"
-          onClick={() => setTab('products')}
-        >
-          <Icon name="plus" size={14} weight={2} />
-          去添加商品
-        </button>
+        {isAdmin && (
+          <button
+            className="m3-btn-tonal mt-4"
+            onClick={() => setTab('products')}
+          >
+            <Icon name="plus" size={14} weight={2} />
+            去添加商品
+          </button>
+        )}
       </div>
     )
   }
 
   return (
     <div>
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <SyncStatusBadge
-          status={syncStatus}
-          error={syncError}
-          lastSyncAt={lastSyncAt}
-          onRefresh={() => syncProducts()}
-        />
-        <button
-          className="m3-btn-text !text-label-md"
-          onClick={() => setTab('products')}
-          title="管理我的商品库"
-        >
-          <Icon name="settings" size={14} weight={2} />
-          <span>管理商品</span>
-        </button>
-      </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {products.map((p) => (
-          <ProductCard
-            key={p.id}
-            product={p}
-            active={p.id === selectedId}
-            onClick={() => selectProduct(p.id)}
-          />
-        ))}
+      {(syncStatus === 'syncing' || syncStatus === 'error' || isAdmin) && (
+        <div className="mb-3 flex h-5 items-center justify-between gap-2">
+          {(syncStatus === 'syncing' || syncStatus === 'error') ? (
+            <SyncStatusBadge
+              status={syncStatus}
+              error={syncError}
+              lastSyncAt={lastSyncAt}
+              onRefresh={() => syncProducts()}
+            />
+          ) : <span />}
+          {isAdmin && (
+            <button
+              className="m3-btn-text !h-7 !px-2 !text-[12px]"
+              onClick={() => setTab('products')}
+              title="管理我的商品库"
+            >
+              <Icon name="settings" size={13} weight={2} />
+              <span>管理商品</span>
+            </button>
+          )}
+        </div>
+      )}
+      <div className="grid max-w-[930px] grid-cols-1 gap-4 sm:grid-cols-2">
+        {products.map((p, idx) => {
+          const isLastOdd = products.length % 2 === 1 && idx === products.length - 1
+          return (
+            <div key={p.id} className={isLastOdd ? 'sm:col-span-2' : ''}>
+              <ProductCard
+                product={p}
+                active={p.id === selectedId}
+                featured={isLastOdd}
+                onClick={() => selectProduct(p.id)}
+              />
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -151,31 +165,33 @@ function formatAgo(ms: number): string {
 function ProductCard({
   product,
   active,
+  featured,
   onClick,
 }: {
   product: Product
   active: boolean
+  featured?: boolean
   onClick: () => void
 }) {
-  // 根据商品名首字取两个字符作为"图标"占位 (无图时)
   const initial = Array.from(product.name).slice(0, 2).join('')
-  // 为每个商品生成稳定的渐变色 (基于 id 哈希)
   const hue = hashHue(product.id)
+  const galleryImages = product.images || []
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-surface-container-lowest text-left transition-all duration-200 ${
+      className={`group relative flex flex-col overflow-hidden bg-white text-left transition-all duration-200 ${featured ? 'rounded-[24px]' : 'rounded-[18px]'} ${
         active
-          ? 'border-primary ring-2 ring-primary/30 shadow-md -translate-y-0.5'
-          : 'border-outline-variant hover:border-primary/50 hover:shadow-sm'
+          ? 'ring-1 ring-[#bda7ef] shadow-[0_16px_38px_-28px_rgba(124,58,237,0.65)]'
+          : 'ring-1 ring-[#eee8f4] shadow-[0_10px_28px_-24px_rgba(44,31,84,0.5)] hover:ring-[#d7c9f5] hover:shadow-[0_18px_40px_-30px_rgba(44,31,84,0.7)]'
       }`}
     >
-      {/* 封面区: <img> 直接占位不做绝对定位 (绕过 button 子元素的某些渲染怪问题) */}
+      {/* 封面区 */}
       <div
-        className="relative h-24 w-full shrink-0 overflow-hidden"
+        className="relative w-full shrink-0 overflow-hidden"
         style={{
+          aspectRatio: featured ? '4.2/1' : '2.55/1',
           backgroundImage: `linear-gradient(135deg, hsl(${hue}, 75%, 88%) 0%, hsl(${(hue + 40) % 360}, 70%, 78%) 100%)`,
         }}
       >
@@ -183,7 +199,7 @@ function ProductCard({
           <img
             src={product.coverUrl}
             alt={product.name}
-            className="block h-full w-full object-cover"
+            className="block h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
             onError={(e) => {
               ;(e.currentTarget as HTMLImageElement).style.display = 'none'
@@ -192,53 +208,89 @@ function ProductCard({
         ) : (
           <div className="flex h-full w-full items-center justify-center">
             <span
-              className="text-display-sm font-display font-semibold"
+              className="text-display-md font-display font-semibold"
               style={{ color: `hsl(${hue}, 60%, 32%)` }}
             >
               {initial}
             </span>
           </div>
         )}
-        {active && (
-          <div className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-on-primary shadow-sm">
-            <Icon name="check" size={14} weight={2.8} />
+
+        {/* 底部渐变: 商品名 + 价格 */}
+        <div className={`${featured ? 'px-5 pb-4 pt-16' : 'px-4 pb-2.5 pt-10'} absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent`}>
+          <div className={`truncate font-semibold leading-tight text-white drop-shadow-md ${featured ? 'text-[17px]' : 'text-[15px]'}`}>
+            {product.name}
           </div>
-        )}
-        {product.priceText && (
-          <div className="absolute bottom-2 left-2 rounded-full bg-white/80 px-2 py-0.5 text-label-sm font-semibold text-on-surface backdrop-blur">
-            {product.priceText}
+          {product.priceText && (
+            <div className={`${featured ? 'text-[14px]' : 'text-[13px]'} mt-0.5 font-medium text-white/90 drop-shadow-sm`}>
+              {product.priceText}
+            </div>
+          )}
+        </div>
+
+        {/* 悬停遮罩: tagline + 卖点 (毛玻璃渐变) */}
+        <div className={`${featured ? 'px-5 pb-4 pt-5' : 'px-4 pb-3 pt-4'} absolute inset-0 flex flex-col opacity-0 transition-all duration-250 group-hover:opacity-100`}
+          style={{ background: 'linear-gradient(165deg, rgba(15,15,20,0.92) 0%, rgba(28,28,35,0.88) 100%)' }}
+        >
+          <div className={`truncate font-bold leading-tight text-white/95 ${featured ? 'text-[16px]' : 'text-[14px]'}`}>
+            {product.name}
           </div>
-        )}
+          {product.tagline && (
+            <div className="mt-1.5 text-[12px] leading-relaxed text-white/65">
+              {product.tagline}
+            </div>
+          )}
+          {product.sellingPoints?.length > 0 && (
+            <div className="mt-auto flex flex-wrap gap-1.5">
+              {product.sellingPoints.slice(0, 3).map((sp, i) => (
+                <span key={i} className="inline-flex items-center gap-1 rounded-full px-2 py-[3px] text-[11px] font-medium leading-none text-white/90"
+                  style={{ background: 'rgba(255,255,255,0.12)' }}
+                >
+                  <span className="h-[5px] w-[5px] shrink-0 rounded-full" style={{ background: 'rgba(255,255,255,0.5)' }} />
+                  {sp}
+                </span>
+              ))}
+            </div>
+          )}
+          {product.priceText && (
+            <div className={`${featured ? 'mt-3' : 'mt-2'} text-[15px] font-bold tracking-wide text-white/95`}>
+              {product.priceText}
+            </div>
+          )}
+        </div>
+
+        {/* 右上角选择圆圈 */}
+        <div className={`absolute top-3 right-3 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-150 ${
+          active
+            ? 'bg-[#7c3aed] text-white shadow-md'
+            : 'border border-white/75 bg-black/28 text-white backdrop-blur-sm group-hover:bg-black/42'
+        }`}>
+          <Icon name={active ? 'check' : 'plus'} size={active ? 15 : 16} weight={active ? 2.8 : 2.2} />
+        </div>
       </div>
 
-      {/* 信息区 */}
-      <div className="flex flex-1 flex-col px-3 py-2.5">
-        <div className="truncate text-title-sm text-on-surface" title={product.name}>
-          {product.name}
+      {/* 展示图横排 */}
+      {galleryImages.length > 0 && (
+        <div className={`${featured ? 'grid grid-cols-3 gap-2 p-2' : 'grid grid-cols-3 gap-2 p-2'}`}>
+          {galleryImages.slice(0, 3).map((url: string, i: number) => (
+            <div
+              key={i}
+              className={`${featured ? 'rounded-2xl' : 'rounded-xl'} overflow-hidden bg-[#f7f3fb] ring-1 ring-black/5`}
+              style={{ aspectRatio: featured ? '1/1' : '1.12/1' }}
+            >
+              <img
+                src={url}
+                alt=""
+                className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                loading="lazy"
+                onError={(e) => {
+                  ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+                }}
+              />
+            </div>
+          ))}
         </div>
-        {product.tagline && (
-          <div
-            className="mt-0.5 line-clamp-2 text-body-sm text-on-surface-variant"
-            title={product.tagline}
-          >
-            {product.tagline}
-          </div>
-        )}
-        {product.sellingPoints?.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1">
-            {product.sellingPoints.slice(0, 2).map((sp, i) => (
-              <span
-                key={i}
-                className="truncate rounded-md bg-surface-container-high/60 px-1.5 py-0.5 text-label-sm text-on-surface-variant"
-                style={{ maxWidth: '100%' }}
-                title={sp}
-              >
-                {sp.length > 12 ? sp.slice(0, 12) + '…' : sp}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
+      )}
     </button>
   )
 }

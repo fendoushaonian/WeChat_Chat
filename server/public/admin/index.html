@@ -242,6 +242,15 @@
         <input id="f_file" type="file" accept="image/*" class="hidden-impl" onchange="onFileChange(event)">
       </Field>
 
+      <Field label="商品展示图" hint="最多上传 9 张，拖拽可排序">
+        <div id="f_imagesGrid" class="grid grid-cols-3 gap-2"></div>
+        <div class="mt-2 flex items-center gap-2">
+          <button type="button" onclick="document.getElementById('f_imgFiles').click()" id="addImgBtn" class="h-8 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm">📤 上传图片</button>
+          <span class="text-xs text-slate-500" id="imgCount">0 / 9</span>
+        </div>
+        <input id="f_imgFiles" type="file" accept="image/*" multiple class="hidden-impl" onchange="onImagesFileChange(event)">
+      </Field>
+
       <Field label="推荐场景" hint="代理选完商品后会自动推荐这些场景">
         <div id="f_scenes" class="flex flex-wrap gap-1.5"></div>
       </Field>
@@ -533,6 +542,8 @@
     document.getElementById('f_coverUrl').value = p.coverUrl || ''
     document.getElementById('f_active').checked = p.active !== false
     setCoverPreview(p.coverUrl || '')
+    formImages = [...(p.images || [])]
+    renderImagesGrid()
     renderSceneChips(p.scenes || [])
     document.getElementById('formErr').classList.add('hidden-impl')
   }
@@ -615,6 +626,7 @@
       scenes: selectedScenes,
       extraRules: document.getElementById('f_extraRules').value.trim(),
       coverUrl: document.getElementById('f_coverUrl').value.trim(),
+      images: formImages,
       priceText: document.getElementById('f_priceText').value.trim(),
       sortOrder: parseInt(document.getElementById('f_sortOrder').value, 10) || 0,
       active: document.getElementById('f_active').checked,
@@ -855,6 +867,58 @@
     const h = Math.round(m / 60)
     if (h < 24) return h + ' 小时前'
     return Math.round(h / 24) + ' 天前'
+  }
+
+  // ========================================
+  // 多图上传
+  // ========================================
+  let formImages = []
+
+  function renderImagesGrid() {
+    const grid = document.getElementById('f_imagesGrid')
+    document.getElementById('imgCount').textContent = `${formImages.length} / 9`
+    const addBtn = document.getElementById('addImgBtn')
+    addBtn.disabled = formImages.length >= 9
+    addBtn.style.opacity = formImages.length >= 9 ? '0.4' : '1'
+    if (formImages.length === 0) {
+      grid.innerHTML = '<div class="text-sm text-slate-400 col-span-3 py-4 text-center">暂未上传展示图</div>'
+      return
+    }
+    grid.innerHTML = formImages.map((url, i) => `
+      <div class="relative group rounded-lg overflow-hidden border border-slate-200 aspect-square bg-slate-50">
+        <img src="${escapeAttr(url)}" class="w-full h-full object-cover" loading="lazy">
+        <button type="button" onclick="removeImage(${i})" 
+          class="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+          title="删除">✕</button>
+        <div class="absolute bottom-1 left-1 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded">${i + 1}</div>
+      </div>
+    `).join('')
+  }
+
+  function removeImage(index) {
+    formImages.splice(index, 1)
+    renderImagesGrid()
+  }
+
+  async function onImagesFileChange(e) {
+    const files = Array.from(e.target.files || [])
+    e.target.value = ''
+    const remaining = 9 - formImages.length
+    if (remaining <= 0) { toast('最多 9 张图片', true); return }
+    const toUpload = files.slice(0, remaining)
+    for (const file of toUpload) {
+      try {
+        const fd = new FormData()
+        fd.append('file', file)
+        const r = await api('/upload', { method: 'POST', body: fd })
+        const url = r.absoluteUrl || (location.origin + r.url)
+        formImages.push(url)
+        renderImagesGrid()
+      } catch (err) {
+        toast('上传失败: ' + err.message, true)
+      }
+    }
+    toast(`已上传 ${toUpload.length} 张图片`)
   }
 
   // 启动

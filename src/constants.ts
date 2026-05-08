@@ -1,6 +1,7 @@
 import type { GenerateParams, Product, ProviderId, Settings } from './types'
 import type { IconName } from './components/Icon'
 
+
 /**
  * AI 平台定义
  */
@@ -263,4 +264,3 @@ export const DEFAULT_PRODUCTS: Product[] = [
     builtIn: true,
   },
 ]
-

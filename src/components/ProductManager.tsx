@@ -76,7 +76,7 @@ export default function ProductManager() {
   return (
     <div className="flex h-full flex-col bg-surface">
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-[900px] px-8 py-8">
+        <div className="mx-auto max-w-[900px] px-4 py-6 md:px-8 md:py-8">
           {/* 页头 */}
           <div className="mb-8 flex items-start justify-between gap-4">
             <div>

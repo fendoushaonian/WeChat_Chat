@@ -23,7 +23,7 @@ export default function History() {
   return (
     <div className="flex h-full flex-col bg-surface">
       {/* 顶部 Search Bar */}
-      <div className="shrink-0 px-8 pt-6 pb-4">
+      <div className="shrink-0 px-4 pt-6 pb-4 md:px-8">
         <div className="mx-auto flex max-w-[760px] items-center gap-3">
           <div className="relative flex-1">
             <Icon
@@ -69,7 +69,7 @@ export default function History() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-8 pb-8">
+      <div className="flex-1 overflow-y-auto px-4 pb-8 md:px-8">
         <div className="mx-auto max-w-[760px]">
           {history.length > 0 && (
             <div className="mb-3 flex items-center justify-between">

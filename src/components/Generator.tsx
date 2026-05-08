@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import Icon from './Icon'
+import Icon, { type IconName } from './Icon'
 import { useStore } from '../store'
 import { AUTO_SCENE_KEY, SCENES, STYLES, MOODS, LENGTH_LABEL } from '../constants'
 import { buildSystemPrompt, buildUserPrompt, splitResults } from '../prompt'
@@ -8,6 +8,7 @@ import { classifyError } from '../errorUtils'
 import { inferScenesForProduct } from '../sceneInfer'
 import type { CopyItem, GenerateParams, Product } from '../types'
 import ResultCard from './ResultCard'
+import ResultPanel from './ResultPanel'
 import ProductSelector from './ProductSelector'
 
 export default function Generator() {
@@ -25,10 +26,16 @@ export default function Generator() {
   const selectedProductId = useStore((s) => s.selectedProductId)
 
   const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [showResultPanel, setShowResultPanel] = useState(false)
   const extraRef = useRef<HTMLTextAreaElement | null>(null)
 
   const selectedProduct: Product | null =
     products.find((p) => p.id === selectedProductId) || null
+  const visibleStyles: { key: string; label: string; icon: IconName }[] = [
+    { key: '朋友圈真实分享', label: '朋友圈文案', icon: 'scene-heart' },
+    { key: '小红书风', label: '小红书风', icon: 'bookmark' },
+    { key: '文艺清新', label: '文艺清新', icon: 'scene-book' },
+  ]
 
   const hasProduct = !!selectedProduct
   const canGenerate = !!(
@@ -54,6 +61,7 @@ export default function Generator() {
     setError('')
     setLoading(true)
     setResults([])
+    setShowResultPanel(true)
 
     // 根据选中商品自动构造 keywords: 名称 · 一句话卖点 · 核心卖点 · 详细介绍
     const kwPieces: string[] = []
@@ -177,68 +185,51 @@ export default function Generator() {
   }, [])
 
   return (
-    <div className="flex h-full flex-col bg-surface">
+    <div className="relative flex h-full flex-col bg-transparent">
+      {/* 结果面板 (覆盖层) */}
+      {showResultPanel && (
+        <ResultPanel
+          results={results}
+          product={selectedProduct}
+          loading={loading}
+          onClose={() => setShowResultPanel(false)}
+        />
+      )}
       {/* 主内容区 */}
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-[760px] px-8 py-8 pb-28">
-          {/* 页头 */}
-          <div className="mb-8">
-            <h1 className="text-display-sm font-display font-medium text-on-surface">
-              创作你的朋友圈
-            </h1>
-            <p className="mt-1.5 text-body-md text-on-surface-variant">
-              选择场景和风格，添加关键词，AI 为你生成自然有温度的文案
-            </p>
-          </div>
+        <div className="max-w-[930px] px-5 pt-6 pb-32 md:px-6 md:pt-6">
 
-          {/* 场景 */}
-          <Section
-            title="选择场景"
-            subtitle="默认「智能推荐」会根据商品自动匹配，也可手动指定一个场景"
-          >
-            <div className="flex flex-wrap gap-2">
-              {SCENES.map((s) => {
-                const active = params.scene === s.key
-                const isAuto = s.key === AUTO_SCENE_KEY
-                return (
-                  <button
-                    key={s.key}
-                    className={`m3-chip ${active ? 'is-active' : ''} ${
-                      isAuto ? '!border-primary/50 !text-primary font-semibold' : ''
-                    }`}
-                    onClick={() => update('scene', s.key)}
-                    title={s.hint}
-                  >
-                    <Icon name={s.icon} size={15} weight={1.8} />
-                    <span>{s.label || s.key}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </Section>
-
-          {/* 风格 */}
-          <Section title="文案风格" subtitle="希望读起来是什么感觉">
-            <div className="flex flex-wrap gap-2">
-              {STYLES.map((s) => (
+          {/* 风格选择 */}
+          <Section title="选择风格">
+            <div className="no-scrollbar flex flex-nowrap items-center gap-4 overflow-x-auto pb-1">
+              {visibleStyles.map((s) => (
                 <button
                   key={s.key}
-                  className={`m3-chip ${params.style === s.key ? 'is-active' : ''}`}
+                  className={`shrink-0 inline-flex h-9 items-center gap-2 rounded-full px-5 text-[13px] font-semibold transition-all ${
+                    params.style === s.key
+                      ? 'bg-gradient-to-r from-[#6d42dc] to-[#8b5cf6] text-white shadow-[0_10px_22px_-16px_rgba(109,66,220,0.85)]'
+                      : 'border border-[#ece7f2] bg-white/90 text-[#5f5869] shadow-[0_5px_18px_-16px_rgba(44,31,84,0.6)] hover:border-[#d9cdf0] hover:text-[#3d3153]'
+                  }`}
                   onClick={() => update('style', s.key)}
-                  title={s.desc}
+                  title={STYLES.find((item) => item.key === s.key)?.desc}
                 >
-                  {params.style === s.key && <Icon name="check" size={14} weight={2.5} />}
-                  {s.key}
+                  <Icon name={s.icon} size={15} weight={1.8} />
+                  {s.label}
                 </button>
               ))}
+              <button
+                className="shrink-0 inline-flex h-9 items-center gap-1.5 rounded-full border border-[#ece7f2] bg-white px-4 text-[13px] font-semibold text-[#5f5869] shadow-sm"
+                type="button"
+                onClick={() => setAdvancedOpen(true)}
+              >
+                更多
+                <Icon name="chevron-down" size={13} weight={2} />
+              </button>
             </div>
           </Section>
 
-          {/* 商品选择器 (代理模式下只能从此列表选) */}
-          <Section
-            title="选择商品"
-            subtitle="点击下方卡片，选择本次要写的商品"
-          >
+          {/* 商品选择器 */}
+          <Section title="选择商品">
             <ProductSelector />
           </Section>
 
@@ -246,7 +237,7 @@ export default function Generator() {
           <div className="mb-4">
             <button
               onClick={() => setAdvancedOpen((v) => !v)}
-              className="m3-btn-text !pl-2"
+              className="inline-flex h-9 items-center gap-2 rounded-full border border-[#eee8f4] bg-white/80 px-4 text-[13px] font-semibold text-[#7c3aed] shadow-sm transition-all hover:border-[#d8c9fb] hover:bg-[#fbf9ff]"
             >
               <Icon
                 name="chevron-down"
@@ -262,7 +253,30 @@ export default function Generator() {
           </div>
 
           {advancedOpen && (
-            <div className="animate-slide-down space-y-6 rounded-2xl bg-surface-container-low p-6">
+            <div className="animate-slide-down space-y-6 rounded-[24px] border border-[#eee8f4] bg-[#fbf9ff] p-6 shadow-inner">
+              {/* 场景 (移到进阶) */}
+              <Section title="场景" subtitle="默认智能推荐，也可手动指定">
+                <div className="flex flex-wrap gap-2">
+                  {SCENES.map((s) => {
+                    const active = params.scene === s.key
+                    const isAuto = s.key === AUTO_SCENE_KEY
+                    return (
+                      <button
+                        key={s.key}
+                        className={`m3-chip ${active ? 'is-active' : ''} ${
+                          isAuto ? '!border-primary/50 !text-primary font-semibold' : ''
+                        }`}
+                        onClick={() => update('scene', s.key)}
+                        title={s.hint}
+                      >
+                        <Icon name={s.icon} size={15} weight={1.8} />
+                        <span>{s.label || s.key}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </Section>
+
               <Section title="心情">
                 <div className="flex flex-wrap gap-2">
                   <button
@@ -356,79 +370,56 @@ export default function Generator() {
 
           {/* 错误提示 - 智能分类友好显示 */}
           {error && <ErrorBanner error={error} onClear={() => setError('')} />}
-
-          {/* 结果 */}
-          <div className="mt-8 space-y-3">
-            {loading ? (
-              <>
-                <div className="flex items-center gap-2 text-title-sm text-on-surface-variant">
-                  <Icon name="loader" size={16} className="animate-spin-slow text-primary" />
-                  <span>AI 正在创作中…</span>
-                </div>
-                <LoadingSkeleton count={params.count} />
-              </>
-            ) : results.length > 0 ? (
-              <>
-                <div className="flex items-center justify-between">
-                  <h2 className="text-title-lg font-display text-on-surface">
-                    生成结果
-                  </h2>
-                  <span className="text-label-md text-on-surface-variant">
-                    已自动保存到「历史记录」
-                  </span>
-                </div>
-                {results.map((item, i) => (
-                  <ResultCard key={item.id} item={item} index={i} />
-                ))}
-              </>
-            ) : (
-              <EmptyHint />
-            )}
-          </div>
         </div>
       </div>
 
       {/* 底部操作栏 */}
-      <div className="sticky bottom-0 shrink-0 border-t border-outline-variant bg-surface/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[760px] items-center justify-between gap-6 px-8 py-3.5">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-label-md text-on-surface-variant">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-container px-2.5 py-1 text-on-primary-container">
-              <Icon name="bot" size={12} weight={2} />
-              {settings.model || '未选择模型'}
-            </span>
-            {selectedProduct ? (
-              <span
-                className="inline-flex max-w-[260px] items-center gap-1 truncate rounded-full bg-tertiary-container px-2.5 py-1 text-on-tertiary-container"
-                title={selectedProduct.name}
-              >
-                <Icon name="check" size={12} weight={2.5} />
-                {selectedProduct.name}
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 rounded-full bg-error-90 px-2.5 py-1 text-error-40">
-                <Icon name="alert" size={12} weight={2} />
-                未选商品
-              </span>
-            )}
-            {params.scene === AUTO_SCENE_KEY ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-primary-container/60 px-2.5 py-1 text-on-primary-container">
-                <Icon name="sparkles" size={12} weight={2} />
-                智能推荐场景
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 rounded-full bg-surface-container-high px-2.5 py-1">
-                {params.scene}
-              </span>
-            )}
-            <span className="inline-flex items-center gap-1 rounded-full bg-surface-container-high px-2.5 py-1">
-              {params.style}
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-surface-container-high px-2.5 py-1">
-              {params.count} 条
-            </span>
+      <div className="sticky bottom-0 shrink-0 bg-gradient-to-t from-white via-white/95 to-white/0 px-3 pt-7 pb-3">
+        <div className="flex max-w-[930px] items-center justify-between gap-3 rounded-[22px] border border-[#eee8f4] bg-white/95 p-2 shadow-[0_16px_48px_-30px_rgba(44,31,84,0.55)] backdrop-blur-2xl">
+          {/* 信息面板 */}
+          <div className="hidden min-w-0 flex-1 items-stretch sm:flex">
+            {/* 当前模型 */}
+            <div className="flex min-w-0 flex-1 items-center gap-3 px-4">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#f3edff] text-[#7c3aed]">
+                <Icon name="bot" size={16} weight={2} />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[11px] leading-none text-[#9a91a8]">当前模型</div>
+                <div className="mt-1 truncate text-[13px] font-semibold text-[#2a2238]">{settings.model || '未选择'}</div>
+              </div>
+            </div>
+            <div className="my-2 w-px bg-[#eee8f4]" />
+            {/* 已选商品 */}
+            <div className="flex min-w-0 flex-1 items-center gap-3 px-4">
+              <div className="h-9 w-9 shrink-0 overflow-hidden rounded-xl bg-[#f3edff]">
+                {selectedProduct?.coverUrl ? (
+                  <img src={selectedProduct.coverUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-[#7c3aed]">
+                    <Icon name="check" size={16} weight={2.4} />
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0">
+                <div className="text-[11px] leading-none text-[#9a91a8]">已选择商品</div>
+                <div className="mt-1 truncate text-[13px] font-semibold text-[#2a2238]">{selectedProduct?.name || '未选商品'}</div>
+              </div>
+            </div>
+            <div className="my-2 w-px bg-[#eee8f4]" />
+            {/* 当前风格 */}
+            <div className="flex min-w-0 flex-1 items-center gap-3 px-4">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#f3edff] text-[#7c3aed]">
+                <Icon name="scene-heart" size={16} weight={2} />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[11px] leading-none text-[#9a91a8]">当前风格</div>
+                <div className="mt-1 truncate text-[13px] font-semibold text-[#7c3aed]">{params.style}</div>
+              </div>
+            </div>
           </div>
+          {/* 生成按钮 */}
           <button
-            className="m3-fab group"
+            className="m3-fab group shrink-0"
             disabled={loading}
             onClick={handleGenerate}
             title="生成文案（快捷键 Enter，文本框内 Ctrl+Enter）"
@@ -466,11 +457,11 @@ function Section({
   children: ReactNode
 }) {
   return (
-    <div className="mb-6">
+    <div className="mb-5">
       <div className="mb-3 flex items-baseline gap-2">
-        <h3 className="text-title-md text-on-surface">{title}</h3>
+        <h3 className="text-[16px] font-bold text-[#1f1635]">{title}</h3>
         {subtitle && (
-          <span className="text-label-md text-on-surface-variant">{subtitle}</span>
+          <span className="text-[12px] text-[#8c8498]">{subtitle}</span>
         )}
       </div>
       {children}

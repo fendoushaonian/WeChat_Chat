@@ -221,8 +221,8 @@ export const useStore = create<AppState>((set, get) => ({
     set({ syncStatus: 'syncing', syncError: '' })
     try {
       const cloud = await fetchCloudProducts({ token, timeoutMs: 8000 })
-      // 合并: 云端商品(带 builtIn=true) + 本地用户自建商品
-      const userCreated = get().products.filter((p) => !p.builtIn)
+      // 管理员: 合并云端 + 本地自建商品; 代理: 只用云端商品
+      const userCreated = get().isAdmin ? get().products.filter((p) => !p.builtIn) : []
       const merged: Product[] = [...cloud, ...userCreated]
       // 当前选中的商品如果在新列表里依然存在则保留, 否则切到第一个
       let selectedId = get().selectedProductId
@@ -364,6 +364,13 @@ export const useStore = create<AppState>((set, get) => ({
     setTimeout(() => {
       get().syncProducts().catch(() => {})
     }, 100)
+
+    // 定时自动同步 (每 30 秒), 后台改商品客户端实时更新
+    setInterval(() => {
+      if (!get().needActivation && get().agentToken) {
+        get().syncProducts().catch(() => {})
+      }
+    }, 30_000)
   },
   persist: async () => {
     const s = get()
