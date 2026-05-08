@@ -36,20 +36,25 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
+      - name: Override npmrc for CI (use international mirrors)
+        run: |
+          echo "registry=https://registry.npmjs.org" > .npmrc
+          echo "electron_mirror=https://github.com/electron/electron/releases/download/" >> .npmrc
+          echo "electron_builder_binaries_mirror=https://github.com/nicedoc/electron-builder-binaries/releases/download/" >> .npmrc
+        shell: bash
+
       - name: Install deps
         run: npm ci
-        env:
-          npm_config_electron_mirror: https://npmmirror.com/mirrors/electron/
-          npm_config_electron_builder_binaries_mirror: https://npmmirror.com/mirrors/electron-builder-binaries/
 
       # ====== Windows 打包 ======
       - name: Build (Windows · agent)
         if: matrix.os == 'windows-latest' && (github.event.inputs.flavor == 'agent' || github.event_name == 'push')
         run: npm run dist:agent
         env:
-          # 关闭代码签名(我们没买证书, 用户首次安装会看到"未知发布者"warning)
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ELECTRON_MIRROR: https://github.com/electron/electron/releases/download/
+          ELECTRON_BUILDER_BINARIES_MIRROR: https://github.com/nicedoc/electron-builder-binaries/releases/download/
 
       - name: Build (Windows · admin)
         if: matrix.os == 'windows-latest' && github.event.inputs.flavor == 'admin'
@@ -63,9 +68,10 @@ jobs:
         if: matrix.os == 'macos-latest' && (github.event.inputs.flavor == 'agent' || github.event_name == 'push')
         run: npm run dist:agent:mac
         env:
-          # Mac 不做签名/notarize, 用户首次右键打开
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ELECTRON_MIRROR: https://github.com/electron/electron/releases/download/
+          ELECTRON_BUILDER_BINARIES_MIRROR: https://github.com/nicedoc/electron-builder-binaries/releases/download/
 
       - name: Build (Mac · admin)
         if: matrix.os == 'macos-latest' && github.event.inputs.flavor == 'admin'
