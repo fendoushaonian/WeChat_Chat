@@ -30,21 +30,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node 22
+      - name: Setup Node 20
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: Override npmrc for CI (use international mirrors)
-        run: |
-          echo "registry=https://registry.npmjs.org" > .npmrc
-          echo "electron_mirror=https://github.com/electron/electron/releases/download/" >> .npmrc
-          echo "electron_builder_binaries_mirror=https://github.com/nicedoc/electron-builder-binaries/releases/download/" >> .npmrc
-        shell: bash
+          node-version: '20'
 
       - name: Install deps
-        run: npm ci
+        run: npm install
 
       # ====== Windows 打包 ======
       - name: Build (Windows · agent)
@@ -53,8 +45,6 @@ jobs:
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ELECTRON_MIRROR: https://github.com/electron/electron/releases/download/
-          ELECTRON_BUILDER_BINARIES_MIRROR: https://github.com/nicedoc/electron-builder-binaries/releases/download/
 
       - name: Build (Windows · admin)
         if: matrix.os == 'windows-latest' && github.event.inputs.flavor == 'admin'
@@ -70,8 +60,6 @@ jobs:
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ELECTRON_MIRROR: https://github.com/electron/electron/releases/download/
-          ELECTRON_BUILDER_BINARIES_MIRROR: https://github.com/nicedoc/electron-builder-binaries/releases/download/
 
       - name: Build (Mac · admin)
         if: matrix.os == 'macos-latest' && github.event.inputs.flavor == 'admin'
